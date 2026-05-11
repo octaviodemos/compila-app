@@ -1,6 +1,8 @@
 import { Feather, Ionicons } from '@expo/vector-icons';
-import { useMemo } from 'react';
+import { type Href, useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,8 +11,11 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { getTodayChallenge } from '@/src/services/challenges';
 import { colors } from '@/src/theme/colors';
 import { fontFamily } from '@/src/theme/typography';
+import type { Challenge } from '@/src/types';
+import { labelDificuldade } from '@/src/utils/challengeUi';
 
 const MESES = [
   'janeiro',
@@ -28,13 +33,6 @@ const MESES = [
 ] as const;
 
 const DIAS_SEMANA = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'] as const;
-
-const MOCK_DESAFIO = {
-  titulo: 'Soma de dois números',
-  descricao:
-    'Leia dois inteiros da entrada padrão e imprima a soma na saída.',
-  exemplo: 'Ex.: entrada 2 e 3 → saída 5',
-};
 
 const MOCK_RANKING = [
   { pos: 1, usuario: 'dev_maria', pontos: 2840 },
@@ -59,7 +57,36 @@ function corPosicao(pos: number): string {
 
 export function InicioScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const dataFormatada = useMemo(() => formatarDataBr(new Date()), []);
+  const [challenge, setChallenge] = useState<Challenge | null>(null);
+  const [loadingChallenge, setLoadingChallenge] = useState(true);
+
+  const carregarDesafio = useCallback(async () => {
+    setLoadingChallenge(true);
+    try {
+      const ch = await getTodayChallenge();
+      setChallenge(ch);
+    } catch {
+      setChallenge(null);
+    } finally {
+      setLoadingChallenge(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    carregarDesafio();
+  }, [carregarDesafio]);
+
+  const exemploLinha = useMemo(() => {
+    const ex = challenge?.exemplos[0];
+    if (!ex) return '';
+    return `Ex.: entrada ${ex.entrada} → saída ${ex.saida}`;
+  }, [challenge]);
+
+  const aoResolver = () => {
+    router.push('/desafio' as Href);
+  };
 
   return (
     <ScrollView
@@ -94,21 +121,37 @@ export function InicioScreen() {
       </View>
 
       <View style={styles.challengeCard}>
-        <View style={styles.challengeTopRow}>
-          <View style={styles.diffBadge}>
-            <Text style={styles.diffBadgeText}>FÁCIL</Text>
+        {loadingChallenge ? (
+          <View style={styles.challengeLoading}>
+            <ActivityIndicator color={colors.text} />
           </View>
-          <View style={styles.codeIconWrap}>
-            <Ionicons name="code-slash" size={24} color="#FFFFFF" />
-          </View>
-        </View>
-        <Text style={styles.challengeTitle}>{MOCK_DESAFIO.titulo}</Text>
-        <Text style={styles.challengeDesc}>{MOCK_DESAFIO.descricao}</Text>
-        <Text style={styles.challengeExemplo}>{MOCK_DESAFIO.exemplo}</Text>
-        <Pressable style={styles.resolveBtn}>
-          <Text style={styles.resolveBtnText}>Resolver desafio</Text>
-          <Text style={styles.resolveBtnChevron}> ›</Text>
-        </Pressable>
+        ) : challenge ? (
+          <>
+            <View style={styles.challengeTopRow}>
+              <View style={styles.diffBadge}>
+                <Text style={styles.diffBadgeText}>
+                  {labelDificuldade(challenge.dificuldade)}
+                </Text>
+              </View>
+              <View style={styles.codeIconWrap}>
+                <Ionicons name="code-slash" size={24} color="#FFFFFF" />
+              </View>
+            </View>
+            <Text style={styles.challengeTitle}>{challenge.titulo}</Text>
+            <Text style={styles.challengeDesc}>{challenge.descricao}</Text>
+            {exemploLinha ? (
+              <Text style={styles.challengeExemplo}>{exemploLinha}</Text>
+            ) : null}
+            <Pressable style={styles.resolveBtn} onPress={aoResolver}>
+              <Text style={styles.resolveBtnText}>Resolver desafio</Text>
+              <Text style={styles.resolveBtnChevron}> ›</Text>
+            </Pressable>
+          </>
+        ) : (
+          <Text style={styles.challengeEmpty}>
+            Nenhum desafio ativo no momento.
+          </Text>
+        )}
       </View>
 
       <Text style={[styles.sectionLabel, styles.sectionSpacer]}>
@@ -223,6 +266,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#5B21B6',
     borderRadius: 16,
     padding: 16,
+    minHeight: 120,
+  },
+  challengeLoading: {
+    paddingVertical: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  challengeEmpty: {
+    fontFamily: fontFamily.regular,
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.85)',
+    textAlign: 'center',
+    paddingVertical: 16,
   },
   challengeTopRow: {
     flexDirection: 'row',

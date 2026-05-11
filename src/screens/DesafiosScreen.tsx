@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { type Href, useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Platform,
   Pressable,
   ScrollView,
@@ -12,36 +13,110 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useAuth } from '@/src/hooks/useAuth';
+import {
+  getTodayChallenge,
+  getUserPontuacao,
+  saveAttempt,
+} from '@/src/services/challenges';
+import { evaluateAnswer } from '@/src/services/gemini';
 import { colors } from '@/src/theme/colors';
 import { fontFamily } from '@/src/theme/typography';
-
-const MOCK_DESAFIO = {
-  titulo: 'Soma dos Dígitos',
-  descricao:
-    'Dado um número inteiro positivo N, calcule a soma de todos os seus dígitos e imprima o resultado.',
-  pontos: 10,
-  badgeEnergia: 100,
-  exemplos: [
-    { entrada: '123', saida: '6' },
-    { entrada: '9999', saida: '36' },
-    { entrada: '5', saida: '5' },
-  ],
-} as const;
+import type { Challenge } from '@/src/types';
+import { labelDificuldade } from '@/src/utils/challengeUi';
 
 const MONO_FONT = Platform.OS === 'android' ? 'monospace' : 'Courier';
 
 export function DesafiosScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { user } = useAuth();
+  const [challenge, setChallenge] = useState<Challenge | null>(null);
+  const [loadingChallenge, setLoadingChallenge] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [pontuacao, setPontuacao] = useState(0);
   const [resposta, setResposta] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [feedbackText, setFeedbackText] = useState('');
+  const [feedbackOk, setFeedbackOk] = useState<boolean | null>(null);
+
+  const carregar = useCallback(async () => {
+    setLoadingChallenge(true);
+    setLoadError('');
+    try {
+      const ch = await getTodayChallenge();
+      setChallenge(ch);
+      if (user?.uid) {
+        const pts = await getUserPontuacao(user.uid);
+        setPontuacao(pts);
+      }
+    } catch (e: unknown) {
+      const msg =
+        e instanceof Error ? e.message : 'Não foi possível carregar o desafio.';
+      setLoadError(msg);
+      setChallenge(null);
+    } finally {
+      setLoadingChallenge(false);
+    }
+  }, [user?.uid]);
+
+  useEffect(() => {
+    carregar();
+  }, [carregar]);
 
   const onVoltar = () => {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace('/');
+      router.replace('/' as Href);
     }
   };
+
+  async function aoEnviar() {
+    if (!user?.uid || !challenge) return;
+    setFeedbackText('');
+    setFeedbackOk(null);
+    setSubmitting(true);
+    try {
+      const result = await evaluateAnswer(challenge, resposta);
+      await saveAttempt(user.uid, challenge, resposta, result);
+      setFeedbackText(result.feedback);
+      setFeedbackOk(result.correct);
+      if (result.correct) {
+        setPontuacao((p) => p + result.points);
+      }
+    } catch (e: unknown) {
+      const msg =
+        e instanceof Error ? e.message : 'Erro ao avaliar. Tente novamente.';
+      setFeedbackText(msg);
+      setFeedbackOk(false);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (loadingChallenge) {
+    return (
+      <View style={[styles.root, styles.centered]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (loadError || !challenge) {
+    return (
+      <View style={[styles.root, styles.centered, styles.errorPad]}>
+        <Text style={styles.errorTitle}>
+          {loadError || 'Nenhum desafio ativo no momento.'}
+        </Text>
+        <Pressable style={styles.retryBtn} onPress={carregar}>
+          <Text style={styles.retryBtnText}>Tentar novamente</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  const exemplos = challenge.exemplos;
 
   return (
     <View style={styles.root}>
@@ -66,34 +141,33 @@ export function DesafiosScreen() {
           <View style={[styles.headerCol, styles.headerColEnd]}>
             <View style={styles.energyPill}>
               <Text style={styles.energyEmoji}>⚡</Text>
-              <Text style={styles.energyNum}>
-                {MOCK_DESAFIO.badgeEnergia}
-              </Text>
+              <Text style={styles.energyNum}>{pontuacao}</Text>
             </View>
           </View>
         </View>
 
         <View style={styles.badgesRow}>
           <View style={styles.diffBadge}>
-            <Text style={styles.diffBadgeText}>FÁCIL</Text>
+            <Text style={styles.diffBadgeText}>
+              {labelDificuldade(challenge.dificuldade)}
+            </Text>
           </View>
           <View style={styles.ptsPill}>
-            <Text style={styles.ptsPillText}>{MOCK_DESAFIO.pontos} pts</Text>
+            <Text style={styles.ptsPillText}>{challenge.pontos} pts</Text>
           </View>
         </View>
 
-        <Text style={styles.challengeTitle}>{MOCK_DESAFIO.titulo}</Text>
-        <Text style={styles.challengeDesc}>{MOCK_DESAFIO.descricao}</Text>
+        <Text style={styles.challengeTitle}>{challenge.titulo}</Text>
+        <Text style={styles.challengeDesc}>{challenge.descricao}</Text>
 
         <Text style={styles.sectionLabel}>Exemplos</Text>
         <View style={styles.examplesCard}>
-          {MOCK_DESAFIO.exemplos.map((ex, index) => (
+          {exemplos.map((ex, index) => (
             <View
-              key={`${ex.entrada}-${ex.saida}`}
+              key={`${ex.entrada}-${ex.saida}-${index}`}
               style={[
                 styles.exampleBlock,
-                index < MOCK_DESAFIO.exemplos.length - 1 &&
-                  styles.exampleBlockSep,
+                index < exemplos.length - 1 && styles.exampleBlockSep,
               ]}
             >
               <View style={styles.ioLine}>
@@ -119,7 +193,20 @@ export function DesafiosScreen() {
           placeholder="// Digite sua resposta aqui..."
           placeholderTextColor={colors.textSecondary}
           textAlignVertical="top"
+          editable={!submitting}
         />
+
+        {feedbackText ? (
+          <View
+            style={[
+              styles.feedbackBox,
+              feedbackOk === true && styles.feedbackOk,
+              feedbackOk === false && styles.feedbackErr,
+            ]}
+          >
+            <Text style={styles.feedbackText}>{feedbackText}</Text>
+          </View>
+        ) : null}
       </ScrollView>
 
       <View
@@ -135,10 +222,20 @@ export function DesafiosScreen() {
           <Pressable style={[styles.btnDica, { flex: 1 }]}>
             <Text style={styles.btnDicaText}>💡 Dica</Text>
           </Pressable>
-          <Pressable style={[styles.btnEnviar, { flex: 2 }]}>
-            <Text style={styles.btnEnviarText}>Enviar resposta</Text>
-            <Text style={styles.btnEnviarChevron}> ›</Text>
-            <Ionicons name="send" size={16} color={colors.text} />
+          <Pressable
+            style={[styles.btnEnviar, { flex: 2 }, submitting && styles.btnDisabled]}
+            onPress={aoEnviar}
+            disabled={submitting}
+          >
+            {submitting ? (
+              <ActivityIndicator color={colors.text} />
+            ) : (
+              <>
+                <Text style={styles.btnEnviarText}>Enviar resposta</Text>
+                <Text style={styles.btnEnviarChevron}> ›</Text>
+                <Ionicons name="send" size={16} color={colors.text} />
+              </>
+            )}
           </Pressable>
         </View>
         <Text style={styles.footerHint}>
@@ -153,6 +250,32 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  centered: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  errorPad: {
+    paddingHorizontal: 24,
+  },
+  errorTitle: {
+    fontFamily: fontFamily.regular,
+    fontSize: 15,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  retryBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  retryBtnText: {
+    fontFamily: fontFamily.semibold,
+    fontSize: 14,
+    color: colors.primary,
   },
   scroll: {
     flex: 1,
@@ -303,6 +426,26 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 8,
   },
+  feedbackBox: {
+    marginTop: 8,
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  feedbackOk: {
+    borderColor: 'rgba(74, 222, 128, 0.35)',
+  },
+  feedbackErr: {
+    borderColor: 'rgba(248, 113, 113, 0.35)',
+  },
+  feedbackText: {
+    fontFamily: fontFamily.regular,
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
+  },
   footer: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: 'rgba(255, 255, 255, 0.08)',
@@ -335,6 +478,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 14,
     gap: 4,
+    minHeight: 48,
+  },
+  btnDisabled: {
+    opacity: 0.7,
   },
   btnEnviarText: {
     fontFamily: fontFamily.semibold,

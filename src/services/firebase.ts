@@ -1,6 +1,9 @@
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
+import type { Auth } from 'firebase/auth';
+import { getAuth as getAuthWeb } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 const measurementId = process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID ?? '';
 
@@ -17,12 +20,38 @@ const firebaseConfig = {
 const isConfigured =
   Boolean(firebaseConfig.apiKey) && Boolean(firebaseConfig.projectId);
 
-const appInstance: FirebaseApp | null = isConfigured
-  ? getApps().length > 0
-    ? getApps()[0]!
-    : initializeApp(firebaseConfig)
-  : null;
+function obterOuCriarApp(): FirebaseApp | null {
+  if (!isConfigured) return null;
+  if (getApps().length > 0) {
+    return getApps()[0]!;
+  }
+  return initializeApp(firebaseConfig);
+}
+
+function criarAuth(app: FirebaseApp): Auth {
+  if (Platform.OS === 'web') {
+    return getAuthWeb(app);
+  }
+  type ModuloRn = {
+    initializeAuth: (
+      appArg: FirebaseApp,
+      deps: { persistence: unknown }
+    ) => Auth;
+    getAuth: (appArg: FirebaseApp) => Auth;
+    getReactNativePersistence: (storage: typeof AsyncStorage) => unknown;
+  };
+  const nativo = require('@firebase/auth') as ModuloRn;
+  try {
+    return nativo.initializeAuth(app, {
+      persistence: nativo.getReactNativePersistence(AsyncStorage),
+    });
+  } catch {
+    return nativo.getAuth(app);
+  }
+}
+
+const appInstance = obterOuCriarApp();
 
 export const app: FirebaseApp | null = appInstance;
-export const auth: Auth | null = appInstance ? getAuth(appInstance) : null;
+export const auth: Auth | null = appInstance ? criarAuth(appInstance) : null;
 export const db: Firestore | null = appInstance ? getFirestore(appInstance) : null;

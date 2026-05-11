@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   ListRenderItem,
   Pressable,
@@ -10,70 +12,27 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useAuth } from '@/src/hooks/useAuth';
+import {
+  getUserAttempts,
+  type AttemptListItem,
+} from '@/src/services/challenges';
 import { colors } from '@/src/theme/colors';
 import { fontFamily } from '@/src/theme/typography';
 
 type FiltroHistorico = 'todos' | 'acertos' | 'erros';
 
-type HistoricoItem = {
-  id: string;
-  desafioNome: string;
-  dataHora: string;
-  acertou: boolean;
-  pontos: number;
-};
-
-const MOCK_TENTATIVAS: HistoricoItem[] = [
-  {
-    id: '1',
-    desafioNome: 'Soma dos Dígitos',
-    dataHora: '30/05/2025 • 10:32',
-    acertou: true,
-    pontos: 10,
-  },
-  {
-    id: '2',
-    desafioNome: 'Fatorial',
-    dataHora: '29/05/2025 • 18:45',
-    acertou: false,
-    pontos: 0,
-  },
-  {
-    id: '3',
-    desafioNome: 'Palíndromo',
-    dataHora: '29/05/2025 • 09:12',
-    acertou: true,
-    pontos: 15,
-  },
-  {
-    id: '4',
-    desafioNome: 'Busca Binária',
-    dataHora: '28/05/2025 • 22:01',
-    acertou: true,
-    pontos: 20,
-  },
-  {
-    id: '5',
-    desafioNome: 'Merge de listas',
-    dataHora: '28/05/2025 • 14:30',
-    acertou: false,
-    pontos: 0,
-  },
-  {
-    id: '6',
-    desafioNome: 'Contagem de vogais',
-    dataHora: '27/05/2025 • 08:55',
-    acertou: true,
-    pontos: 10,
-  },
-  {
-    id: '7',
-    desafioNome: 'Fibonacci',
-    dataHora: '26/05/2025 • 16:20',
-    acertou: false,
-    pontos: 0,
-  },
-];
+function formatarDataHoraBr(d: Date | null): string {
+  if (!d || !(d instanceof Date) || Number.isNaN(d.getTime())) {
+    return '—';
+  }
+  const dia = String(d.getDate()).padStart(2, '0');
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const ano = d.getFullYear();
+  const h = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${dia}/${mes}/${ano} • ${h}:${min}`;
+}
 
 const FILTROS: { key: FiltroHistorico; label: string }[] = [
   { key: 'todos', label: 'Todos' },
@@ -83,17 +42,43 @@ const FILTROS: { key: FiltroHistorico; label: string }[] = [
 
 export function HistoricoScreen() {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const [filtro, setFiltro] = useState<FiltroHistorico>('todos');
+  const [items, setItems] = useState<AttemptListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const carregar = useCallback(async () => {
+    if (!user?.uid) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const list = await getUserAttempts(user.uid);
+      setItems(list);
+    } catch {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.uid]);
+
+  useFocusEffect(
+    useCallback(() => {
+      carregar();
+    }, [carregar])
+  );
 
   const listaFiltrada = useMemo(() => {
-    if (filtro === 'todos') return MOCK_TENTATIVAS;
+    if (filtro === 'todos') return items;
     if (filtro === 'acertos') {
-      return MOCK_TENTATIVAS.filter((t) => t.acertou);
+      return items.filter((t) => t.acertou);
     }
-    return MOCK_TENTATIVAS.filter((t) => !t.acertou);
-  }, [filtro]);
+    return items.filter((t) => !t.acertou);
+  }, [filtro, items]);
 
-  const renderItem: ListRenderItem<HistoricoItem> = ({ item }) => (
+  const renderItem: ListRenderItem<AttemptListItem> = ({ item }) => (
     <View style={styles.itemRow}>
       <View
         style={[
@@ -109,9 +94,11 @@ export function HistoricoScreen() {
       </View>
       <View style={styles.itemCenter}>
         <Text style={styles.itemNome} numberOfLines={1}>
-          {item.desafioNome}
+          {item.titulo}
         </Text>
-        <Text style={styles.itemData}>{item.dataHora}</Text>
+        <Text style={styles.itemData}>
+          {formatarDataHoraBr(item.criadoEm)}
+        </Text>
       </View>
       <View style={styles.itemRight}>
         <View style={styles.itemRightTexts}>
@@ -140,6 +127,14 @@ export function HistoricoScreen() {
       </View>
     </View>
   );
+
+  if (loading) {
+    return (
+      <View style={[styles.root, styles.centered, { paddingTop: insets.top }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.root, { paddingTop: insets.top + 12 }]}>
@@ -195,6 +190,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
     paddingHorizontal: 20,
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
     textAlign: 'center',
