@@ -17,10 +17,36 @@ import type { Challenge, EvaluateResult } from '@/src/types';
 
 import { db } from './firebase';
 
-function mapDocToChallenge(id: string, data: Record<string, unknown>): Challenge {
-  const exemplosRaw = data.exemplos;
-  const exemplos: Challenge['exemplos'] = [];
+const exemploParSeparador = ' | ';
+const exemploSetaSeparador = ' → ';
+
+function parseExemplosFromString(raw: string): Challenge['exemplos'] {
+  const result: Challenge['exemplos'] = [];
+  for (const segmento of raw.split(exemploParSeparador)) {
+    const trecho = segmento.trim();
+    if (!trecho) continue;
+    const indiceSeta = trecho.indexOf(exemploSetaSeparador);
+    if (indiceSeta === -1) continue;
+    const esquerda = trecho.slice(0, indiceSeta).trim();
+    const direita = trecho
+      .slice(indiceSeta + exemploSetaSeparador.length)
+      .trim();
+    const entradaMatch = esquerda.match(/^Entrada:\s*(.+)$/i);
+    const saidaMatch = direita.match(/^Saída:\s*(.+)$/i);
+    if (!entradaMatch?.[1] || !saidaMatch?.[1]) continue;
+    result.push({
+      entrada: entradaMatch[1].trim(),
+      saida: saidaMatch[1].trim(),
+    });
+  }
+  return result;
+}
+
+function parseExemplosFromFirestore(
+  exemplosRaw: unknown
+): Challenge['exemplos'] {
   if (Array.isArray(exemplosRaw)) {
+    const exemplos: Challenge['exemplos'] = [];
     for (const item of exemplosRaw) {
       if (
         typeof item === 'object' &&
@@ -36,7 +62,16 @@ function mapDocToChallenge(id: string, data: Record<string, unknown>): Challenge
         });
       }
     }
+    return exemplos;
   }
+  if (typeof exemplosRaw === 'string') {
+    return parseExemplosFromString(exemplosRaw);
+  }
+  return [];
+}
+
+function mapDocToChallenge(id: string, data: Record<string, unknown>): Challenge {
+  const exemplos = parseExemplosFromFirestore(data.exemplos);
 
   const lang = data.language;
   const language =
