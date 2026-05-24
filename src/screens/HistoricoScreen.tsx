@@ -2,23 +2,23 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
-  ListRenderItem,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    FlatList,
+    ListRenderItem,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useAuth } from '@/src/hooks/useAuth';
+import { fontFamily } from '@src/constants/typography';
+import { useAuth } from '@src/hooks/useAuth';
+import { useThemeColors } from '@src/hooks/useTheme';
 import {
-  getUserAttempts,
-  type AttemptListItem,
-} from '@/src/services/challenges';
-import { colors } from '@/src/theme/colors';
-import { fontFamily } from '@/src/theme/typography';
+    getUserAttempts,
+    type AttemptListItem,
+} from '@src/services/challenges';
 
 type FiltroHistorico = 'todos' | 'acertos' | 'erros';
 
@@ -43,6 +43,7 @@ const FILTROS: { key: FiltroHistorico; label: string }[] = [
 export function HistoricoScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const colors = useThemeColors();
   const [filtro, setFiltro] = useState<FiltroHistorico>('todos');
   const [items, setItems] = useState<AttemptListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,6 +78,145 @@ export function HistoricoScreen() {
     }
     return items.filter((t) => !t.acertou);
   }, [filtro, items]);
+
+  const styles = StyleSheet.create({
+    root: {
+      flex: 1,
+      backgroundColor: colors.background,
+      paddingHorizontal: 20,
+    },
+    centered: {
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    headerTitle: {
+      textAlign: 'center',
+      fontFamily: fontFamily.bold,
+      fontSize: 20,
+      color: colors.text,
+      marginBottom: 20,
+    },
+    tabsRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: 28,
+      marginBottom: 16,
+    },
+    tabPress: {
+      alignItems: 'center',
+      paddingBottom: 8,
+      minWidth: 72,
+      position: 'relative',
+    },
+    tabLabel: {
+      fontFamily: fontFamily.semibold,
+      fontSize: 15,
+      color: colors.textSecondary,
+    },
+    tabLabelAtivo: {
+      color: colors.text,
+    },
+    tabUnderline: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      height: 2,
+      backgroundColor: colors.primary,
+      borderRadius: 1,
+    },
+    list: {
+      flex: 1,
+    },
+    listContent: {
+      paddingBottom: 24,
+    },
+    listContentEmpty: {
+      flexGrow: 1,
+    },
+    itemRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 14,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.card,
+      backgroundColor: 'transparent',
+      gap: 12,
+    },
+    iconCircle: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+    },
+    iconCircleOk: {
+      borderColor: 'rgba(74, 222, 128, 0.35)',
+      backgroundColor: 'rgba(74, 222, 128, 0.12)',
+    },
+    iconCircleErr: {
+      borderColor: 'rgba(248, 113, 113, 0.35)',
+      backgroundColor: 'rgba(248, 113, 113, 0.12)',
+    },
+    itemCenter: {
+      flex: 1,
+      minWidth: 0,
+    },
+    itemNome: {
+      fontFamily: fontFamily.semibold,
+      fontSize: 15,
+      color: colors.text,
+    },
+    itemData: {
+      fontFamily: fontFamily.regular,
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 4,
+    },
+    itemRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    itemRightTexts: {
+      alignItems: 'flex-end',
+    },
+    itemPontos: {
+      fontFamily: fontFamily.semibold,
+      fontSize: 14,
+    },
+    itemPontosOk: {
+      color: colors.primary,
+    },
+    itemPontosErr: {
+      color: '#F87171',
+    },
+    itemStatus: {
+      fontFamily: fontFamily.regular,
+      fontSize: 12,
+      marginTop: 2,
+    },
+    itemStatusOk: {
+      color: '#4ADE80',
+    },
+    itemStatusErr: {
+      color: '#F87171',
+    },
+    empty: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 48,
+      gap: 12,
+    },
+    emptyText: {
+      fontFamily: fontFamily.regular,
+      fontSize: 15,
+      color: colors.textSecondary,
+      textAlign: 'center',
+    },
+  });
 
   const renderItem: ListRenderItem<AttemptListItem> = ({ item }) => (
     <View style={styles.itemRow}>
@@ -184,142 +324,3 @@ export function HistoricoScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.background,
-    paddingHorizontal: 20,
-  },
-  centered: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    textAlign: 'center',
-    fontFamily: fontFamily.bold,
-    fontSize: 20,
-    color: colors.text,
-    marginBottom: 20,
-  },
-  tabsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 28,
-    marginBottom: 16,
-  },
-  tabPress: {
-    alignItems: 'center',
-    paddingBottom: 8,
-    minWidth: 72,
-    position: 'relative',
-  },
-  tabLabel: {
-    fontFamily: fontFamily.semibold,
-    fontSize: 15,
-    color: colors.textSecondary,
-  },
-  tabLabelAtivo: {
-    color: colors.text,
-  },
-  tabUnderline: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 2,
-    backgroundColor: colors.primary,
-    borderRadius: 1,
-  },
-  list: {
-    flex: 1,
-  },
-  listContent: {
-    paddingBottom: 24,
-  },
-  listContentEmpty: {
-    flexGrow: 1,
-  },
-  itemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.card,
-    backgroundColor: 'transparent',
-    gap: 12,
-  },
-  iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-  },
-  iconCircleOk: {
-    borderColor: 'rgba(74, 222, 128, 0.35)',
-    backgroundColor: 'rgba(74, 222, 128, 0.12)',
-  },
-  iconCircleErr: {
-    borderColor: 'rgba(248, 113, 113, 0.35)',
-    backgroundColor: 'rgba(248, 113, 113, 0.12)',
-  },
-  itemCenter: {
-    flex: 1,
-    minWidth: 0,
-  },
-  itemNome: {
-    fontFamily: fontFamily.semibold,
-    fontSize: 15,
-    color: colors.text,
-  },
-  itemData: {
-    fontFamily: fontFamily.regular,
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  itemRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  itemRightTexts: {
-    alignItems: 'flex-end',
-  },
-  itemPontos: {
-    fontFamily: fontFamily.semibold,
-    fontSize: 14,
-  },
-  itemPontosOk: {
-    color: colors.primary,
-  },
-  itemPontosErr: {
-    color: '#F87171',
-  },
-  itemStatus: {
-    fontFamily: fontFamily.regular,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  itemStatusOk: {
-    color: '#4ADE80',
-  },
-  itemStatusErr: {
-    color: '#F87171',
-  },
-  empty: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 48,
-    gap: 12,
-  },
-  emptyText: {
-    fontFamily: fontFamily.regular,
-    fontSize: 15,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-});

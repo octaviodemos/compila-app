@@ -1,3 +1,4 @@
+
 export type ChallengeLanguage = 'javascript' | 'python';
 
 export type ChallengeDifficulty = 'facil' | 'medio' | 'dificil';

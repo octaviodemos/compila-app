@@ -1,3 +1,5 @@
+
+
 export const fontFamily = {
   regular: 'Inter_400Regular',
   semibold: 'Inter_600SemiBold',

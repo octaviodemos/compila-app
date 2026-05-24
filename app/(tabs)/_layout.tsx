@@ -1,8 +1,7 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { useThemeColors } from '@src/hooks/useTheme';
 import { Tabs } from 'expo-router';
-import type { ComponentProps } from 'react';
-
-import { colors } from '@/src/theme/colors';
+import { type ComponentProps } from 'react';
 
 function TabBarIcon(props: {
   name: ComponentProps<typeof FontAwesome>['name'];
@@ -12,6 +11,9 @@ function TabBarIcon(props: {
 }
 
 export default function TabLayout() {
+
+  const colors = useThemeColors();
+
   return (
     <Tabs
       screenOptions={{

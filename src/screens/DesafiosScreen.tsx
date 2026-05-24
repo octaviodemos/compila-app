@@ -13,17 +13,17 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useAuth } from '@/src/hooks/useAuth';
+import { fontFamily } from '@src/constants/typography';
+import { useAuth } from '@src/hooks/useAuth';
+import { useThemeColors } from '@src/hooks/useTheme';
 import {
   getTodayChallenge,
   getUserPontuacao,
   saveAttempt,
-} from '@/src/services/challenges';
-import { evaluateAnswer } from '@/src/services/gemini';
-import { colors } from '@/src/theme/colors';
-import { fontFamily } from '@/src/theme/typography';
-import type { Challenge } from '@/src/types';
-import { labelDificuldade } from '@/src/utils/challengeUi';
+} from '@src/services/challenges';
+import { evaluateAnswer } from '@src/services/gemini';
+import type { Challenge } from '@src/types';
+import { labelDificuldade } from '@src/utils/challengeUi';
 
 const MONO_FONT = Platform.OS === 'android' ? 'monospace' : 'Courier';
 
@@ -31,6 +31,7 @@ export function DesafiosScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
+  const colors = useThemeColors();
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [loadingChallenge, setLoadingChallenge] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -94,6 +95,262 @@ export function DesafiosScreen() {
       setSubmitting(false);
     }
   }
+
+  const styles = StyleSheet.create({
+    root: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    centered: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    errorPad: {
+      paddingHorizontal: 24,
+    },
+    errorTitle: {
+      fontFamily: fontFamily.regular,
+      fontSize: 15,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginBottom: 16,
+    },
+    retryBtn: {
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.primary,
+    },
+    retryBtnText: {
+      fontFamily: fontFamily.semibold,
+      fontSize: 14,
+      color: colors.primary,
+    },
+    scroll: {
+      flex: 1,
+    },
+    scrollContent: {
+      paddingHorizontal: 20,
+      paddingBottom: 16,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 16,
+      minHeight: 44,
+    },
+    headerCol: {
+      flex: 1,
+      justifyContent: 'center',
+    },
+    headerColStart: {
+      alignItems: 'flex-start',
+    },
+    headerColCenter: {
+      alignItems: 'center',
+    },
+    headerColEnd: {
+      alignItems: 'flex-end',
+    },
+    headerTitle: {
+      fontFamily: fontFamily.semibold,
+      fontSize: 17,
+      color: colors.text,
+    },
+    energyPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#F59E0B',
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 999,
+      gap: 4,
+    },
+    energyEmoji: {
+      fontSize: 13,
+    },
+    energyNum: {
+      fontFamily: fontFamily.bold,
+      fontSize: 14,
+      color: '#0F0F14',
+    },
+    badgesRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 16,
+    },
+    diffBadge: {
+      backgroundColor: '#22C55E',
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 6,
+    },
+    diffBadgeText: {
+      fontFamily: fontFamily.semibold,
+      fontSize: 10,
+      color: colors.text,
+      letterSpacing: 0.5,
+    },
+    ptsPill: {
+      backgroundColor: '#252530',
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 999,
+    },
+    ptsPillText: {
+      fontFamily: fontFamily.semibold,
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    challengeTitle: {
+      fontFamily: fontFamily.bold,
+      fontSize: 22,
+      color: colors.text,
+      marginBottom: 10,
+    },
+    challengeDesc: {
+      fontFamily: fontFamily.regular,
+      fontSize: 15,
+      color: colors.textSecondary,
+      lineHeight: 22,
+      marginBottom: 24,
+    },
+    sectionLabel: {
+      fontFamily: fontFamily.semibold,
+      fontSize: 16,
+      color: colors.text,
+      marginBottom: 10,
+    },
+    labelResposta: {
+      marginTop: 8,
+    },
+    examplesCard: {
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 8,
+    },
+    exampleBlock: {
+      paddingBottom: 0,
+    },
+    exampleBlockSep: {
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+      paddingBottom: 14,
+      marginBottom: 14,
+    },
+    ioLine: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    ioLineSecond: {
+      marginTop: 8,
+    },
+    labelEntrada: {
+      fontFamily: fontFamily.semibold,
+      fontSize: 14,
+      color: '#4ADE80',
+    },
+    labelSaida: {
+      fontFamily: fontFamily.semibold,
+      fontSize: 14,
+      color: '#A78BFA',
+    },
+    valorIo: {
+      fontFamily: fontFamily.regular,
+      fontSize: 14,
+      color: colors.text,
+      flexShrink: 1,
+    },
+    input: {
+      minHeight: 120,
+      backgroundColor: colors.card,
+      color: colors.text,
+      fontFamily: MONO_FONT,
+      fontSize: 14,
+      borderRadius: 12,
+      padding: 14,
+      marginBottom: 8,
+    },
+    feedbackBox: {
+      marginTop: 8,
+      padding: 14,
+      borderRadius: 12,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.08)',
+    },
+    feedbackOk: {
+      borderColor: 'rgba(74, 222, 128, 0.35)',
+    },
+    feedbackErr: {
+      borderColor: 'rgba(248, 113, 113, 0.35)',
+    },
+    feedbackText: {
+      fontFamily: fontFamily.regular,
+      fontSize: 14,
+      color: colors.text,
+      lineHeight: 20,
+    },
+    footer: {
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: 'rgba(255, 255, 255, 0.08)',
+      paddingHorizontal: 20,
+      backgroundColor: colors.background,
+    },
+    footerActions: {
+      flexDirection: 'row',
+      gap: 10,
+      alignItems: 'stretch',
+    },
+    btnDica: {
+      borderWidth: 1,
+      borderColor: colors.primary,
+      borderRadius: 12,
+      paddingVertical: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    btnDicaText: {
+      fontFamily: fontFamily.semibold,
+      fontSize: 14,
+      color: colors.primary,
+    },
+    btnEnviar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primary,
+      borderRadius: 12,
+      paddingVertical: 14,
+      gap: 4,
+      minHeight: 48,
+    },
+    btnDisabled: {
+      opacity: 0.7,
+    },
+    btnEnviarText: {
+      fontFamily: fontFamily.semibold,
+      fontSize: 14,
+      color: colors.text,
+    },
+    btnEnviarChevron: {
+      fontFamily: fontFamily.semibold,
+      fontSize: 14,
+      color: colors.text,
+    },
+    footerHint: {
+      marginTop: 10,
+      textAlign: 'center',
+      fontFamily: fontFamily.regular,
+      fontSize: 11,
+      color: colors.textSecondary,
+    },
+  });
 
   if (loadingChallenge) {
     return (
@@ -245,259 +502,3 @@ export function DesafiosScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  centered: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  errorPad: {
-    paddingHorizontal: 24,
-  },
-  errorTitle: {
-    fontFamily: fontFamily.regular,
-    fontSize: 15,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  retryBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  retryBtnText: {
-    fontFamily: fontFamily.semibold,
-    fontSize: 14,
-    color: colors.primary,
-  },
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    minHeight: 44,
-  },
-  headerCol: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  headerColStart: {
-    alignItems: 'flex-start',
-  },
-  headerColCenter: {
-    alignItems: 'center',
-  },
-  headerColEnd: {
-    alignItems: 'flex-end',
-  },
-  headerTitle: {
-    fontFamily: fontFamily.semibold,
-    fontSize: 17,
-    color: colors.text,
-  },
-  energyPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    gap: 4,
-  },
-  energyEmoji: {
-    fontSize: 13,
-  },
-  energyNum: {
-    fontFamily: fontFamily.bold,
-    fontSize: 14,
-    color: '#0F0F14',
-  },
-  badgesRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  diffBadge: {
-    backgroundColor: '#22C55E',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  diffBadgeText: {
-    fontFamily: fontFamily.semibold,
-    fontSize: 10,
-    color: colors.text,
-    letterSpacing: 0.5,
-  },
-  ptsPill: {
-    backgroundColor: '#252530',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-  },
-  ptsPillText: {
-    fontFamily: fontFamily.semibold,
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  challengeTitle: {
-    fontFamily: fontFamily.bold,
-    fontSize: 22,
-    color: colors.text,
-    marginBottom: 10,
-  },
-  challengeDesc: {
-    fontFamily: fontFamily.regular,
-    fontSize: 15,
-    color: colors.textSecondary,
-    lineHeight: 22,
-    marginBottom: 24,
-  },
-  sectionLabel: {
-    fontFamily: fontFamily.semibold,
-    fontSize: 16,
-    color: colors.text,
-    marginBottom: 10,
-  },
-  labelResposta: {
-    marginTop: 8,
-  },
-  examplesCard: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
-  },
-  exampleBlock: {
-    paddingBottom: 0,
-  },
-  exampleBlockSep: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-    paddingBottom: 14,
-    marginBottom: 14,
-  },
-  ioLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  ioLineSecond: {
-    marginTop: 8,
-  },
-  labelEntrada: {
-    fontFamily: fontFamily.semibold,
-    fontSize: 14,
-    color: '#4ADE80',
-  },
-  labelSaida: {
-    fontFamily: fontFamily.semibold,
-    fontSize: 14,
-    color: '#A78BFA',
-  },
-  valorIo: {
-    fontFamily: fontFamily.regular,
-    fontSize: 14,
-    color: colors.text,
-    flexShrink: 1,
-  },
-  input: {
-    minHeight: 120,
-    backgroundColor: colors.card,
-    color: colors.text,
-    fontFamily: MONO_FONT,
-    fontSize: 14,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 8,
-  },
-  feedbackBox: {
-    marginTop: 8,
-    padding: 14,
-    borderRadius: 12,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  feedbackOk: {
-    borderColor: 'rgba(74, 222, 128, 0.35)',
-  },
-  feedbackErr: {
-    borderColor: 'rgba(248, 113, 113, 0.35)',
-  },
-  feedbackText: {
-    fontFamily: fontFamily.regular,
-    fontSize: 14,
-    color: colors.text,
-    lineHeight: 20,
-  },
-  footer: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
-    paddingHorizontal: 20,
-    backgroundColor: colors.background,
-  },
-  footerActions: {
-    flexDirection: 'row',
-    gap: 10,
-    alignItems: 'stretch',
-  },
-  btnDica: {
-    borderWidth: 1,
-    borderColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnDicaText: {
-    fontFamily: fontFamily.semibold,
-    fontSize: 14,
-    color: colors.primary,
-  },
-  btnEnviar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 14,
-    gap: 4,
-    minHeight: 48,
-  },
-  btnDisabled: {
-    opacity: 0.7,
-  },
-  btnEnviarText: {
-    fontFamily: fontFamily.semibold,
-    fontSize: 14,
-    color: colors.text,
-  },
-  btnEnviarChevron: {
-    fontFamily: fontFamily.semibold,
-    fontSize: 14,
-    color: colors.text,
-  },
-  footerHint: {
-    marginTop: 10,
-    textAlign: 'center',
-    fontFamily: fontFamily.regular,
-    fontSize: 11,
-    color: colors.textSecondary,
-  },
-});

@@ -1,11 +1,12 @@
-import { Text, TextProps, StyleSheet } from 'react-native';
+import { StyleSheet, Text, TextProps } from 'react-native';
 
-import { colors } from '@/src/theme/colors';
-import { fontFamily } from '@/src/theme/typography';
+import { fontFamily } from '@src/constants/typography';
+import { useThemeColors } from '@src/hooks/useTheme';
+import { ThemeColorSet } from '@src/types/theme';
 
 type AppTextProps = TextProps & {
   variant?: 'body' | 'title';
-  color?: keyof typeof colors;
+  color?: keyof ThemeColorSet;
 };
 
 export function AppText({
@@ -14,8 +15,9 @@ export function AppText({
   style,
   ...rest
 }: AppTextProps) {
-  const font =
-    variant === 'title' ? fontFamily.bold : fontFamily.regular;
+  const colors = useThemeColors();
+  const font = variant === 'title' ? fontFamily.bold : fontFamily.regular;
+
   return (
     <Text
       style={[

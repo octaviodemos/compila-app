@@ -1,19 +1,19 @@
 import {
-  addDoc,
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  increment,
-  limit,
-  orderBy,
-  query,
-  serverTimestamp,
-  where,
-  writeBatch,
+    addDoc,
+    collection,
+    doc,
+    getDoc,
+    getDocs,
+    increment,
+    limit,
+    orderBy,
+    query,
+    serverTimestamp,
+    where,
+    writeBatch,
 } from 'firebase/firestore';
 
-import type { Challenge, EvaluateResult } from '@/src/types';
+import type { Challenge, EvaluateResult } from '@src/types';
 
 import { db } from './firebase';
 

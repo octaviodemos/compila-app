@@ -2,8 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors } from '@/src/theme/colors';
-import { fontFamily } from '@/src/theme/typography';
+import { fontFamily } from '@src/constants/typography';
+import { useThemeColors } from '@src/hooks/useTheme';
 
 const GRID_H_PAD = 20;
 const GRID_GAPS_TOTAL = 32;
@@ -56,7 +56,140 @@ const MOCK_CONQUISTAS = [
 export function PerfilScreen() {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
+  const colors = useThemeColors();
   const conqItemWidth = (screenWidth - 40 - GRID_GAPS_TOTAL) / 3;
+
+  const styles = StyleSheet.create({
+    scroll: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      paddingHorizontal: GRID_H_PAD,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 24,
+    },
+    avatarWrap: {
+      alignItems: 'center',
+      marginBottom: 28,
+    },
+    avatarCircle: {
+      width: 90,
+      height: 90,
+      borderRadius: 45,
+      backgroundColor: '#3B0764',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 14,
+    },
+    usernameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      marginBottom: 8,
+    },
+    username: {
+      fontFamily: fontFamily.bold,
+      fontSize: 20,
+      color: colors.text,
+    },
+    pencilBtn: {
+      marginTop: 2,
+    },
+    bio: {
+      fontFamily: fontFamily.regular,
+      fontSize: 14,
+      color: colors.textSecondary,
+      textAlign: 'center',
+    },
+    statsRow: {
+      flexDirection: 'row',
+      gap: 12,
+      marginBottom: 28,
+    },
+    statCard: {
+      flex: 1,
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      padding: 14,
+      alignItems: 'center',
+    },
+    statLabel: {
+      fontFamily: fontFamily.regular,
+      fontSize: 12,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginBottom: 6,
+    },
+    statEmoji: {
+      fontSize: 22,
+      marginBottom: 4,
+    },
+    statValue: {
+      fontFamily: fontFamily.bold,
+      fontSize: 22,
+      color: colors.text,
+      textAlign: 'center',
+    },
+    conqHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 16,
+    },
+    conqTitle: {
+      fontFamily: fontFamily.semibold,
+      fontSize: 16,
+      color: colors.text,
+    },
+    conqVerTudo: {
+      fontFamily: fontFamily.regular,
+      fontSize: 14,
+      color: colors.primary,
+    },
+    conqGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 16,
+      justifyContent: 'flex-start',
+    },
+    conqCell: {
+      alignItems: 'center',
+      justifyContent: 'flex-start',
+    },
+    conqCircle: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 8,
+    },
+    conqEmoji: {
+      fontSize: 26,
+    },
+    conqNome: {
+      fontFamily: fontFamily.semibold,
+      fontSize: 12,
+      color: colors.text,
+      textAlign: 'center',
+      alignSelf: 'stretch',
+      marginBottom: 4,
+    },
+    conqDesc: {
+      fontFamily: fontFamily.regular,
+      fontSize: 10,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      alignSelf: 'stretch',
+      lineHeight: 14,
+    },
+  });
 
   return (
     <ScrollView
@@ -130,135 +263,3 @@ export function PerfilScreen() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  scroll: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    paddingHorizontal: GRID_H_PAD,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-  },
-  avatarWrap: {
-    alignItems: 'center',
-    marginBottom: 28,
-  },
-  avatarCircle: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: '#3B0764',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
-  },
-  usernameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  username: {
-    fontFamily: fontFamily.bold,
-    fontSize: 20,
-    color: colors.text,
-  },
-  pencilBtn: {
-    marginTop: 2,
-  },
-  bio: {
-    fontFamily: fontFamily.regular,
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 28,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 14,
-    alignItems: 'center',
-  },
-  statLabel: {
-    fontFamily: fontFamily.regular,
-    fontSize: 12,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 6,
-  },
-  statEmoji: {
-    fontSize: 22,
-    marginBottom: 4,
-  },
-  statValue: {
-    fontFamily: fontFamily.bold,
-    fontSize: 22,
-    color: colors.text,
-    textAlign: 'center',
-  },
-  conqHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  conqTitle: {
-    fontFamily: fontFamily.semibold,
-    fontSize: 16,
-    color: colors.text,
-  },
-  conqVerTudo: {
-    fontFamily: fontFamily.regular,
-    fontSize: 14,
-    color: colors.primary,
-  },
-  conqGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-    justifyContent: 'flex-start',
-  },
-  conqCell: {
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-  },
-  conqCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  conqEmoji: {
-    fontSize: 26,
-  },
-  conqNome: {
-    fontFamily: fontFamily.semibold,
-    fontSize: 12,
-    color: colors.text,
-    textAlign: 'center',
-    alignSelf: 'stretch',
-    marginBottom: 4,
-  },
-  conqDesc: {
-    fontFamily: fontFamily.regular,
-    fontSize: 10,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    alignSelf: 'stretch',
-    lineHeight: 14,
-  },
-});

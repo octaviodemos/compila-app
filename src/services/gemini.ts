@@ -1,7 +1,7 @@
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
-import type { Challenge, EvaluateResult } from '@/src/types/index';
+import type { Challenge, EvaluateResult } from '@src/types/index';
 
 if (
   process.env.EXPO_PUBLIC_GEMINI_API_KEY &&

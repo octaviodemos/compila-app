@@ -1,27 +1,27 @@
 import { Link, type Href } from 'expo-router';
-import { useState } from 'react';
 import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  createUserWithEmailAndPassword,
-  updateProfile,
+    createUserWithEmailAndPassword,
+    updateProfile,
 } from 'firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { useState } from 'react';
+import {
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { auth, db } from '@/src/services/firebase';
-import { mensagemErroAuth } from '@/src/services/firebaseAuthErrors';
-import { colors } from '@/src/theme/colors';
-import { fontFamily } from '@/src/theme/typography';
+import { fontFamily } from '@src/constants/typography';
+import { useThemeColors } from '@src/hooks/useTheme';
+import { auth, db } from '@src/services/firebase';
+import { mensagemErroAuth } from '@src/services/firebaseAuthErrors';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -66,6 +66,7 @@ function validarCamposCadastro(data: {
 
 export function CadastroScreen() {
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -127,6 +128,93 @@ export function CadastroScreen() {
       setSubmitting(false);
     }
   }
+
+  const styles = StyleSheet.create({
+    root: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      paddingHorizontal: 20,
+      flexGrow: 1,
+    },
+    titulo: {
+      fontFamily: fontFamily.bold,
+      fontSize: 24,
+      color: colors.text,
+      marginBottom: 28,
+      textAlign: 'center',
+    },
+    grupoCampo: {
+      marginBottom: 14,
+    },
+    input: {
+      fontFamily: fontFamily.regular,
+      fontSize: 16,
+      color: colors.text,
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.06)',
+    },
+    inputErro: {
+      borderColor: '#F87171',
+    },
+    dicaSenha: {
+      fontFamily: fontFamily.regular,
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 6,
+    },
+    erroCampo: {
+      fontFamily: fontFamily.regular,
+      fontSize: 12,
+      color: '#F87171',
+      marginTop: 6,
+    },
+    erroGeral: {
+      fontFamily: fontFamily.regular,
+      fontSize: 14,
+      color: '#F87171',
+      marginBottom: 14,
+      textAlign: 'center',
+      marginTop: 2,
+    },
+    botaoPrimario: {
+      backgroundColor: colors.primary,
+      borderRadius: 12,
+      paddingVertical: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '100%',
+      marginTop: 8,
+      minHeight: 52,
+    },
+    botaoDisabled: {
+      opacity: 0.55,
+    },
+    botaoPrimarioTexto: {
+      fontFamily: fontFamily.semibold,
+      fontSize: 16,
+      color: colors.text,
+    },
+    linkWrap: {
+      alignItems: 'center',
+      marginTop: 24,
+      padding: 12,
+    },
+    linkText: {
+      fontFamily: fontFamily.regular,
+      fontSize: 15,
+      color: colors.textSecondary,
+    },
+    linkAccent: {
+      color: colors.primary,
+      fontFamily: fontFamily.semibold,
+    },
+  });
 
   return (
     <KeyboardAvoidingView
@@ -241,90 +329,3 @@ export function CadastroScreen() {
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    paddingHorizontal: 20,
-    flexGrow: 1,
-  },
-  titulo: {
-    fontFamily: fontFamily.bold,
-    fontSize: 24,
-    color: colors.text,
-    marginBottom: 28,
-    textAlign: 'center',
-  },
-  grupoCampo: {
-    marginBottom: 14,
-  },
-  input: {
-    fontFamily: fontFamily.regular,
-    fontSize: 16,
-    color: colors.text,
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  inputErro: {
-    borderColor: '#F87171',
-  },
-  dicaSenha: {
-    fontFamily: fontFamily.regular,
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 6,
-  },
-  erroCampo: {
-    fontFamily: fontFamily.regular,
-    fontSize: 12,
-    color: '#F87171',
-    marginTop: 6,
-  },
-  erroGeral: {
-    fontFamily: fontFamily.regular,
-    fontSize: 14,
-    color: '#F87171',
-    marginBottom: 14,
-    textAlign: 'center',
-    marginTop: 2,
-  },
-  botaoPrimario: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    marginTop: 8,
-    minHeight: 52,
-  },
-  botaoDisabled: {
-    opacity: 0.55,
-  },
-  botaoPrimarioTexto: {
-    fontFamily: fontFamily.semibold,
-    fontSize: 16,
-    color: colors.text,
-  },
-  linkWrap: {
-    alignItems: 'center',
-    marginTop: 24,
-    padding: 12,
-  },
-  linkText: {
-    fontFamily: fontFamily.regular,
-    fontSize: 15,
-    color: colors.textSecondary,
-  },
-  linkAccent: {
-    color: colors.primary,
-    fontFamily: fontFamily.semibold,
-  },
-});

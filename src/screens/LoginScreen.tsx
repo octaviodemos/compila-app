@@ -1,26 +1,27 @@
 import { Link, type Href } from 'expo-router';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useState } from 'react';
 import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { signInWithEmailAndPassword } from 'firebase/auth';
 
-import { auth } from '@/src/services/firebase';
-import { mensagemErroAuth } from '@/src/services/firebaseAuthErrors';
-import { colors } from '@/src/theme/colors';
-import { fontFamily } from '@/src/theme/typography';
+import { fontFamily } from '@src/constants/typography';
+import { useThemeColors } from '@src/hooks/useTheme';
+import { auth } from '@src/services/firebase';
+import { mensagemErroAuth } from '@src/services/firebaseAuthErrors';
 
 export function LoginScreen() {
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [erroMsg, setErroMsg] = useState('');
@@ -60,6 +61,87 @@ export function LoginScreen() {
       setSubmitting(false);
     }
   }
+
+  const styles = StyleSheet.create({
+    root: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      paddingHorizontal: 20,
+      flexGrow: 1,
+    },
+    logo: {
+      fontFamily: fontFamily.bold,
+      fontSize: 36,
+      color: colors.text,
+      textAlign: 'center',
+      marginBottom: 40,
+    },
+    grupoCampo: {
+      marginBottom: 14,
+    },
+    input: {
+      fontFamily: fontFamily.regular,
+      fontSize: 16,
+      color: colors.text,
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.06)',
+    },
+    inputErro: {
+      borderColor: '#F87171',
+    },
+    erroCampo: {
+      fontFamily: fontFamily.regular,
+      fontSize: 12,
+      color: '#F87171',
+      marginTop: 6,
+    },
+    erroGeral: {
+      fontFamily: fontFamily.regular,
+      fontSize: 14,
+      color: '#F87171',
+      marginBottom: 14,
+      textAlign: 'center',
+      marginTop: 2,
+    },
+    botaoPrimario: {
+      backgroundColor: colors.primary,
+      borderRadius: 12,
+      paddingVertical: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '100%',
+      marginTop: 8,
+      minHeight: 52,
+    },
+    botaoDisabled: {
+      opacity: 0.55,
+    },
+    botaoPrimarioTexto: {
+      fontFamily: fontFamily.semibold,
+      fontSize: 16,
+      color: colors.text,
+    },
+    linkWrap: {
+      alignItems: 'center',
+      marginTop: 24,
+      padding: 12,
+    },
+    linkText: {
+      fontFamily: fontFamily.regular,
+      fontSize: 15,
+      color: colors.textSecondary,
+    },
+    linkAccent: {
+      color: colors.primary,
+      fontFamily: fontFamily.semibold,
+    },
+  });
 
   return (
     <KeyboardAvoidingView
@@ -137,84 +219,3 @@ export function LoginScreen() {
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    paddingHorizontal: 20,
-    flexGrow: 1,
-  },
-  logo: {
-    fontFamily: fontFamily.bold,
-    fontSize: 36,
-    color: colors.text,
-    textAlign: 'center',
-    marginBottom: 40,
-  },
-  grupoCampo: {
-    marginBottom: 14,
-  },
-  input: {
-    fontFamily: fontFamily.regular,
-    fontSize: 16,
-    color: colors.text,
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  inputErro: {
-    borderColor: '#F87171',
-  },
-  erroCampo: {
-    fontFamily: fontFamily.regular,
-    fontSize: 12,
-    color: '#F87171',
-    marginTop: 6,
-  },
-  erroGeral: {
-    fontFamily: fontFamily.regular,
-    fontSize: 14,
-    color: '#F87171',
-    marginBottom: 14,
-    textAlign: 'center',
-    marginTop: 2,
-  },
-  botaoPrimario: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    marginTop: 8,
-    minHeight: 52,
-  },
-  botaoDisabled: {
-    opacity: 0.55,
-  },
-  botaoPrimarioTexto: {
-    fontFamily: fontFamily.semibold,
-    fontSize: 16,
-    color: colors.text,
-  },
-  linkWrap: {
-    alignItems: 'center',
-    marginTop: 24,
-    padding: 12,
-  },
-  linkText: {
-    fontFamily: fontFamily.regular,
-    fontSize: 15,
-    color: colors.textSecondary,
-  },
-  linkAccent: {
-    color: colors.primary,
-    fontFamily: fontFamily.semibold,
-  },
-});
