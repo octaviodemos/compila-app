@@ -1,45 +1,39 @@
-import { google } from '@ai-sdk/google';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 import type { Challenge, EvaluateResult } from '@src/types/index';
-
-if (
-  process.env.EXPO_PUBLIC_GEMINI_API_KEY &&
-  !process.env.GOOGLE_GENERATIVE_AI_API_KEY
-) {
-  process.env.GOOGLE_GENERATIVE_AI_API_KEY =
-    process.env.EXPO_PUBLIC_GEMINI_API_KEY;
-}
-
-// usar gemini-2.0-flash-lite que tem limite mais generoso
-const model = google('gemini-2.0-flash-lite');
 
 export async function evaluateAnswer(
   challenge: Challenge,
   userAnswer: string
 ): Promise<EvaluateResult> {
-  if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-    throw new Error('Defina GOOGLE_GENERATIVE_AI_API_KEY no arquivo .env');
+  const apiKey = process.env.EXPO_PUBLIC_LLM_API_KEY;
+  if (!apiKey) {
+    throw new Error('Defina EXPO_PUBLIC_LLM_API_KEY no arquivo .env');
   }
 
+  const google = createGoogleGenerativeAI({ apiKey });
+  // const model = google('gemma-3-27b-it');
+  const model = google('gemini-2.0-flash-lite');
+
   const prompt = `
-Você é um avaliador de código. Avalie a resposta do usuário para o seguinte desafio de programação.
+    Você é um avaliador de código. Avalie a resposta do usuário para o seguinte desafio de programação.
 
-Desafio: ${challenge.titulo}
-Descrição: ${challenge.descricao}
-Exemplos:
-${challenge.exemplos.map((e) => `Entrada: ${e.entrada} → Saída: ${e.saida}`).join('\n')}
+    Desafio: ${challenge.titulo}
+    Descrição: ${challenge.descricao}
+    Exemplos:
+    ${challenge.exemplos.map((e) => `Entrada: ${e.entrada} → Saída: ${e.saida}`).join('\n')}
 
-Resposta do usuário:
-${userAnswer}
+    Resposta do usuário:
+    ${userAnswer}
 
-Retorne APENAS um JSON válido, sem markdown, sem texto adicional:
-{
-  "correct": true ou false,
-  "feedback": "explicação em português do que o usuário acertou ou errou",
-  "points": número de 0 até ${challenge.pontos}
-}
-`;
+    Retorne APENAS um JSON válido, sem markdown, sem texto adicional:
+    {
+      "correct": true ou false,
+      "feedback": "explicação em português do que o usuário acertou ou errou",
+      "points": número de 0 até ${challenge.pontos}
+    }
+  `;
 
   const { text } = await generateText({
     model,
@@ -48,7 +42,7 @@ Retorne APENAS um JSON válido, sem markdown, sem texto adicional:
   });
 
   if (!text) {
-    throw new Error('Resposta inválida do Gemini');
+    throw new Error('Resposta inválida do modelo');
   }
 
   try {
@@ -69,9 +63,9 @@ Retorne APENAS um JSON válido, sem markdown, sem texto adicional:
           points: Number(json.points),
         };
       } catch {
-        throw new Error('Resposta inválida do Gemini');
+        throw new Error('Resposta inválida do modelo');
       }
     }
-    throw new Error('Resposta inválida do Gemini');
+    throw new Error('Resposta inválida do modelo');
   }
 }
