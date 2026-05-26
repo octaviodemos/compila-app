@@ -1,6 +1,7 @@
 import { Feather, Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { type Href, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Pressable,
@@ -12,8 +13,14 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { fontFamily } from '@src/constants/typography';
+import { useAuth } from '@src/hooks/useAuth';
 import { useThemeColors } from '@src/hooks/useTheme';
-import { getTodayChallenge } from '@src/services/challenges';
+import {
+    getRanking,
+    getTodayChallenge,
+    getUserProfile,
+    type RankingItem,
+} from '@src/services/challenges';
 import type { Challenge } from '@src/types';
 import { labelDificuldade } from '@src/utils/challengeUi';
 
@@ -33,16 +40,7 @@ const MESES = [
 ] as const;
 
 const DIAS_SEMANA = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'] as const;
-
-const MOCK_RANKING = [
-  { pos: 1, usuario: 'dev_maria', pontos: 2840 },
-  { pos: 2, usuario: 'coder_joao', pontos: 2510 },
-  { pos: 3, usuario: 'stack_ana', pontos: 2395 },
-  { pos: 4, usuario: 'byte_pedro', pontos: 1980 },
-  { pos: 5, usuario: 'null_luca', pontos: 1720 },
-] as const;
-
-const STREAK_DIAS = 7;
+const SEMANA_TAMANHO = DIAS_SEMANA.length;
 
 function formatarDataBr(data: Date): string {
   return `${data.getDate()} de ${MESES[data.getMonth()]}`;
@@ -59,25 +57,46 @@ export function InicioScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const colors = useThemeColors();
+  const { user } = useAuth();
   const dataFormatada = useMemo(() => formatarDataBr(new Date()), []);
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [loadingChallenge, setLoadingChallenge] = useState(true);
+  const [sequencia, setSequencia] = useState(0);
+  const [ranking, setRanking] = useState<RankingItem[]>([]);
+  const [loadingRanking, setLoadingRanking] = useState(true);
 
-  const carregarDesafio = useCallback(async () => {
+  const carregar = useCallback(async () => {
     setLoadingChallenge(true);
+    setLoadingRanking(true);
     try {
-      const ch = await getTodayChallenge();
+      const [ch, rank] = await Promise.all([
+        getTodayChallenge().catch(() => null),
+        getRanking().catch(() => [] as RankingItem[]),
+      ]);
       setChallenge(ch);
-    } catch {
-      setChallenge(null);
+      setRanking(rank);
     } finally {
       setLoadingChallenge(false);
+      setLoadingRanking(false);
     }
-  }, []);
 
-  useEffect(() => {
-    carregarDesafio();
-  }, [carregarDesafio]);
+    if (user?.uid) {
+      try {
+        const perfil = await getUserProfile(user.uid);
+        setSequencia(perfil?.sequencia ?? 0);
+      } catch {
+        setSequencia(0);
+      }
+    } else {
+      setSequencia(0);
+    }
+  }, [user?.uid]);
+
+  useFocusEffect(
+    useCallback(() => {
+      carregar();
+    }, [carregar])
+  );
 
   const exemploLinha = useMemo(() => {
     const ex = challenge?.exemplos[0];
@@ -307,6 +326,13 @@ export function InicioScreen() {
       fontSize: 14,
       color: colors.textSecondary,
     },
+    rankingEmpty: {
+      fontFamily: fontFamily.regular,
+      fontSize: 13,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      paddingVertical: 12,
+    },
   });
 
   return (
@@ -325,7 +351,7 @@ export function InicioScreen() {
         <Text style={styles.compilaLogo}>Compila</Text>
         <View style={styles.streakPill}>
           <Text style={styles.streakEmoji}>🔥</Text>
-          <Text style={styles.streakNum}>{STREAK_DIAS}</Text>
+          <Text style={styles.streakNum}>{sequencia}</Text>
         </View>
       </View>
 
@@ -381,43 +407,78 @@ export function InicioScreen() {
       <View style={styles.streakCard}>
         <View style={styles.streakCardHeader}>
           <Text style={styles.streakCardEmoji}>🔥</Text>
-          <Text style={styles.streakCardTitle}>{STREAK_DIAS} dias</Text>
+          <Text style={styles.streakCardTitle}>
+            {sequencia} {sequencia === 1 ? 'dia' : 'dias'}
+          </Text>
         </View>
         <View style={styles.weekRow}>
-          {DIAS_SEMANA.map((letra, index) => (
-            <View key={`${letra}-${index}`} style={styles.weekDay}>
-              <View style={styles.weekDot}>
-                <Ionicons
-                  name="checkmark"
-                  size={14}
-                  color={colors.primary}
-                />
+          {DIAS_SEMANA.map((letra, index) => {
+            const ativo = index < Math.min(sequencia, SEMANA_TAMANHO);
+            return (
+              <View key={`${letra}-${index}`} style={styles.weekDay}>
+                <View
+                  style={[
+                    styles.weekDot,
+                    ativo && {
+                      backgroundColor: 'rgba(124, 58, 237, 0.18)',
+                    },
+                  ]}
+                >
+                  {ativo ? (
+                    <Ionicons
+                      name="checkmark"
+                      size={14}
+                      color={colors.primary}
+                    />
+                  ) : null}
+                </View>
+                <Text style={styles.weekLetter}>{letra}</Text>
               </View>
-              <Text style={styles.weekLetter}>{letra}</Text>
-            </View>
-          ))}
+            );
+          })}
         </View>
       </View>
 
       <View style={[styles.sectionHeader, styles.sectionSpacer]}>
-        <Text style={styles.sectionLabel}>Ranking semanal</Text>
+        <Text style={styles.sectionLabel}>Ranking</Text>
         <Pressable>
           <Text style={styles.verTudo}>Ver tudo ›</Text>
         </Pressable>
       </View>
       <View style={styles.rankingList}>
-        {MOCK_RANKING.map((item) => (
-          <View key={item.usuario} style={styles.rankingRow}>
-            <Text style={[styles.rankingPos, { color: corPosicao(item.pos, colors.textSecondary) }]}>
-              {item.pos}
-            </Text>
-            <View style={styles.avatar} />
-            <Text style={styles.rankingUser} numberOfLines={1}>
-              {item.usuario}
-            </Text>
-            <Text style={styles.rankingPts}>{item.pontos} pts</Text>
-          </View>
-        ))}
+        {loadingRanking ? (
+          <ActivityIndicator color={colors.primary} />
+        ) : ranking.length === 0 ? (
+          <Text style={styles.rankingEmpty}>
+            Ninguém pontuou ainda. Resolva o desafio do dia para aparecer aqui.
+          </Text>
+        ) : (
+          ranking.map((item, index) => {
+            const pos = index + 1;
+            const nome = item.username || 'usuário';
+            const eVoce = item.uid === user?.uid;
+            return (
+              <View key={item.uid} style={styles.rankingRow}>
+                <Text
+                  style={[
+                    styles.rankingPos,
+                    { color: corPosicao(pos, colors.textSecondary) },
+                  ]}
+                >
+                  {pos}
+                </Text>
+                <View style={styles.avatar} />
+                <Text style={styles.rankingUser} numberOfLines={1}>
+                  {nome}
+                  {eVoce ? '  (você)' : ''}
+                </Text>
+                <Text style={styles.rankingPts}>
+                  {item.pontuacao.toLocaleString('pt-BR')} pts
+                </Text>
+              </View>
+            );
+          })
+        )}
       </View>
     </ScrollView>
   );

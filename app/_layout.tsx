@@ -16,6 +16,7 @@ import { theme } from '@src/constants/theme';
 import { ThemeConfigContext } from '@src/contexts/useThemeContext';
 import { useAuth } from '@src/hooks/useAuth';
 import { useThemeColors } from '@src/hooks/useTheme';
+import { seedIfEmpty } from '@src/scripts/seedChallenges';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -39,6 +40,12 @@ function RootLayoutNavigator() {
     }
   }, [user, loading, segments, router]);
 
+  useEffect(() => {
+    if (__DEV__ && user) {
+      seedIfEmpty().catch(() => {});
+    }
+  }, [user]);
+
   if (loading) {
     return (
       <View style={[styles.overlay, { backgroundColor: colors.background }]}>
@@ -52,6 +59,7 @@ function RootLayoutNavigator() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="login" />
       <Stack.Screen name="cadastro" />
+      <Stack.Screen name="configuracoes" />
     </Stack>
   );
 }

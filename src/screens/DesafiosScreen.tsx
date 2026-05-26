@@ -40,6 +40,10 @@ export function DesafiosScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackOk, setFeedbackOk] = useState<boolean | null>(null);
+  const [feedbackPoints, setFeedbackPoints] = useState<number | null>(null);
+
+  const completou = feedbackOk === true;
+  const errouUltima = feedbackOk === false;
 
   const carregar = useCallback(async () => {
     setLoadingChallenge(true);
@@ -77,12 +81,14 @@ export function DesafiosScreen() {
     if (!user?.uid || !challenge) return;
     setFeedbackText('');
     setFeedbackOk(null);
+    setFeedbackPoints(null);
     setSubmitting(true);
     try {
       const result = await evaluateAnswer(challenge, resposta);
       await saveAttempt(user.uid, challenge, resposta, result);
       setFeedbackText(result.feedback);
       setFeedbackOk(result.correct);
+      setFeedbackPoints(result.points);
       if (result.correct) {
         setPontuacao((p) => p + result.points);
       }
@@ -91,9 +97,16 @@ export function DesafiosScreen() {
         e instanceof Error ? e.message : 'Erro ao avaliar. Tente novamente.';
       setFeedbackText(msg);
       setFeedbackOk(false);
+      setFeedbackPoints(null);
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function aoTentarNovamente() {
+    setFeedbackText('');
+    setFeedbackOk(null);
+    setFeedbackPoints(null);
   }
 
   const styles = StyleSheet.create({
@@ -283,6 +296,7 @@ export function DesafiosScreen() {
       backgroundColor: colors.card,
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.08)',
+      gap: 10,
     },
     feedbackOk: {
       borderColor: 'rgba(74, 222, 128, 0.35)',
@@ -290,11 +304,75 @@ export function DesafiosScreen() {
     feedbackErr: {
       borderColor: 'rgba(248, 113, 113, 0.35)',
     },
+    feedbackHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    feedbackBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 999,
+    },
+    feedbackBadgeOk: {
+      backgroundColor: 'rgba(74, 222, 128, 0.18)',
+    },
+    feedbackBadgeErr: {
+      backgroundColor: 'rgba(248, 113, 113, 0.18)',
+    },
+    feedbackBadgeText: {
+      fontFamily: fontFamily.semibold,
+      fontSize: 12,
+      letterSpacing: 0.3,
+    },
+    feedbackBadgeTextOk: {
+      color: '#4ADE80',
+    },
+    feedbackBadgeTextErr: {
+      color: '#F87171',
+    },
     feedbackText: {
       fontFamily: fontFamily.regular,
       fontSize: 14,
       color: colors.text,
       lineHeight: 20,
+    },
+    feedbackTryAgain: {
+      alignSelf: 'flex-start',
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: colors.primary,
+    },
+    feedbackTryAgainText: {
+      fontFamily: fontFamily.semibold,
+      fontSize: 13,
+      color: colors.primary,
+    },
+    completedHint: {
+      marginTop: 12,
+      padding: 14,
+      borderRadius: 12,
+      backgroundColor: 'rgba(124, 58, 237, 0.12)',
+      borderWidth: 1,
+      borderColor: 'rgba(124, 58, 237, 0.35)',
+    },
+    completedHintText: {
+      fontFamily: fontFamily.semibold,
+      fontSize: 14,
+      color: colors.text,
+      textAlign: 'center',
+    },
+    completedHintSub: {
+      fontFamily: fontFamily.regular,
+      fontSize: 12,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginTop: 4,
     },
     footer: {
       borderTopWidth: StyleSheet.hairlineWidth,
@@ -450,18 +528,65 @@ export function DesafiosScreen() {
           placeholder="// Digite sua resposta aqui..."
           placeholderTextColor={colors.textSecondary}
           textAlignVertical="top"
-          editable={!submitting}
+          editable={!submitting && !completou}
         />
 
         {feedbackText ? (
           <View
             style={[
               styles.feedbackBox,
-              feedbackOk === true && styles.feedbackOk,
-              feedbackOk === false && styles.feedbackErr,
+              completou && styles.feedbackOk,
+              errouUltima && styles.feedbackErr,
             ]}
           >
+            <View style={styles.feedbackHeader}>
+              <View
+                style={[
+                  styles.feedbackBadge,
+                  completou
+                    ? styles.feedbackBadgeOk
+                    : styles.feedbackBadgeErr,
+                ]}
+              >
+                <Ionicons
+                  name={completou ? 'checkmark-circle' : 'close-circle'}
+                  size={16}
+                  color={completou ? '#4ADE80' : '#F87171'}
+                />
+                <Text
+                  style={[
+                    styles.feedbackBadgeText,
+                    completou
+                      ? styles.feedbackBadgeTextOk
+                      : styles.feedbackBadgeTextErr,
+                  ]}
+                >
+                  {completou
+                    ? `Acertou +${feedbackPoints ?? 0} pts`
+                    : `Incorreto — ${feedbackPoints ?? 0} pts`}
+                </Text>
+              </View>
+            </View>
             <Text style={styles.feedbackText}>{feedbackText}</Text>
+            {errouUltima ? (
+              <Pressable
+                style={styles.feedbackTryAgain}
+                onPress={aoTentarNovamente}
+              >
+                <Text style={styles.feedbackTryAgainText}>Tentar novamente</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
+
+        {completou ? (
+          <View style={styles.completedHint}>
+            <Text style={styles.completedHintText}>
+              Você concluiu o desafio de hoje!
+            </Text>
+            <Text style={styles.completedHintSub}>
+              Volte amanhã para um novo desafio.
+            </Text>
           </View>
         ) : null}
       </ScrollView>
@@ -476,28 +601,46 @@ export function DesafiosScreen() {
         ]}
       >
         <View style={styles.footerActions}>
-          <Pressable style={[styles.btnDica, { flex: 1 }]}>
-            <Text style={styles.btnDicaText}>💡 Dica</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.btnEnviar, { flex: 2 }, submitting && styles.btnDisabled]}
-            onPress={aoEnviar}
-            disabled={submitting}
-          >
-            {submitting ? (
-              <ActivityIndicator color={colors.text} />
-            ) : (
-              <>
-                <Text style={styles.btnEnviarText}>Enviar resposta</Text>
-                <Text style={styles.btnEnviarChevron}> ›</Text>
-                <Ionicons name="send" size={16} color={colors.text} />
-              </>
-            )}
-          </Pressable>
+          {completou ? (
+            <Pressable
+              style={[styles.btnEnviar, { flex: 1 }]}
+              onPress={onVoltar}
+            >
+              <Ionicons name="home" size={16} color={colors.text} />
+              <Text style={styles.btnEnviarText}>Voltar ao início</Text>
+            </Pressable>
+          ) : (
+            <>
+              <Pressable style={[styles.btnDica, { flex: 1 }]}>
+                <Text style={styles.btnDicaText}>💡 Dica</Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.btnEnviar,
+                  { flex: 2 },
+                  submitting && styles.btnDisabled,
+                ]}
+                onPress={aoEnviar}
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <ActivityIndicator color={colors.text} />
+                ) : (
+                  <>
+                    <Text style={styles.btnEnviarText}>Enviar resposta</Text>
+                    <Text style={styles.btnEnviarChevron}> ›</Text>
+                    <Ionicons name="send" size={16} color={colors.text} />
+                  </>
+                )}
+              </Pressable>
+            </>
+          )}
         </View>
-        <Text style={styles.footerHint}>
-          🔒 Você pode enviar quantas vezes quiser
-        </Text>
+        {!completou ? (
+          <Text style={styles.footerHint}>
+            🔒 Você pode enviar quantas vezes quiser
+          </Text>
+        ) : null}
       </View>
     </View>
   );

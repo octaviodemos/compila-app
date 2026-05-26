@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
@@ -17,8 +17,10 @@ import { useAuth } from '@src/hooks/useAuth';
 import { useThemeColors } from '@src/hooks/useTheme';
 import {
     getUserAttempts,
+    getUserProfile,
     type AttemptListItem,
 } from '@src/services/challenges';
+import { exportHistoricoPDF } from '@src/services/exportPdf';
 
 type FiltroHistorico = 'todos' | 'acertos' | 'erros';
 
@@ -47,6 +49,8 @@ export function HistoricoScreen() {
   const [filtro, setFiltro] = useState<FiltroHistorico>('todos');
   const [items, setItems] = useState<AttemptListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState('');
 
   const carregar = useCallback(async () => {
     if (!user?.uid) {
@@ -71,6 +75,12 @@ export function HistoricoScreen() {
     }, [carregar])
   );
 
+  useFocusEffect(
+    useCallback(() => {
+      return () => {};
+    }, [])
+  );
+
   const listaFiltrada = useMemo(() => {
     if (filtro === 'todos') return items;
     if (filtro === 'acertos') {
@@ -78,6 +88,33 @@ export function HistoricoScreen() {
     }
     return items.filter((t) => !t.acertou);
   }, [filtro, items]);
+
+  async function aoExportar() {
+    if (!user?.uid || exporting) return;
+    if (items.length === 0) {
+      setExportError('Você ainda não tem tentativas para exportar.');
+      return;
+    }
+    setExportError('');
+    setExporting(true);
+    try {
+      const perfil = await getUserProfile(user.uid);
+      const nome =
+        perfil?.username?.trim() ||
+        user.displayName?.trim() ||
+        user.email?.split('@')[0] ||
+        'usuario';
+      await exportHistoricoPDF(items, nome, perfil?.sequencia ?? 0);
+    } catch (e: unknown) {
+      const msg =
+        e instanceof Error
+          ? e.message
+          : 'Não foi possível gerar o PDF. Tente novamente.';
+      setExportError(msg);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   const styles = StyleSheet.create({
     root: {
@@ -89,18 +126,65 @@ export function HistoricoScreen() {
       justifyContent: 'center',
       alignItems: 'center',
     },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 20,
+      minHeight: 40,
+      backgroundColor: colors.background,
+    },
+    headerSideLeft: {
+      width: 76,
+    },
+    headerSideRight: {
+      width: 76,
+      alignItems: 'flex-end',
+    },
     headerTitle: {
+      flex: 1,
       textAlign: 'center',
       fontFamily: fontFamily.bold,
       fontSize: 20,
       color: colors.text,
-      marginBottom: 20,
+    },
+    exportBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: colors.primary,
+      minHeight: 36,
+    },
+    exportBtnDisabled: {
+      opacity: 0.45,
+      borderColor: colors.textSecondary,
+    },
+    exportBtnText: {
+      fontFamily: fontFamily.semibold,
+      fontSize: 12,
+      color: colors.primary,
+    },
+    exportBtnTextDisabled: {
+      color: colors.textSecondary,
+    },
+    exportErrorText: {
+      marginTop: -12,
+      marginBottom: 12,
+      fontFamily: fontFamily.regular,
+      fontSize: 12,
+      color: '#F87171',
+      textAlign: 'center',
     },
     tabsRow: {
       flexDirection: 'row',
       justifyContent: 'center',
       gap: 28,
       marginBottom: 16,
+      backgroundColor: colors.background,
     },
     tabPress: {
       alignItems: 'center',
@@ -127,21 +211,34 @@ export function HistoricoScreen() {
     },
     list: {
       flex: 1,
+      backgroundColor: colors.background,
     },
     listContent: {
       paddingBottom: 24,
+      backgroundColor: colors.background,
     },
     listContentEmpty: {
       flexGrow: 1,
+      backgroundColor: colors.background,
     },
     itemRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
       paddingVertical: 14,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.card,
       backgroundColor: 'transparent',
+    },
+    itemMain: {
+      flexDirection: 'row',
+      alignItems: 'center',
       gap: 12,
+    },
+    itemFeedback: {
+      marginTop: 10,
+      marginLeft: 52,
+      fontFamily: fontFamily.regular,
+      fontSize: 13,
+      color: colors.textSecondary,
+      lineHeight: 18,
     },
     iconCircle: {
       width: 40,
@@ -220,51 +317,53 @@ export function HistoricoScreen() {
 
   const renderItem: ListRenderItem<AttemptListItem> = ({ item }) => (
     <View style={styles.itemRow}>
-      <View
-        style={[
-          styles.iconCircle,
-          item.acertou ? styles.iconCircleOk : styles.iconCircleErr,
-        ]}
-      >
-        {item.acertou ? (
-          <Ionicons name="checkmark" size={18} color="#4ADE80" />
-        ) : (
-          <Ionicons name="close" size={18} color="#F87171" />
-        )}
-      </View>
-      <View style={styles.itemCenter}>
-        <Text style={styles.itemNome} numberOfLines={1}>
-          {item.titulo}
-        </Text>
-        <Text style={styles.itemData}>
-          {formatarDataHoraBr(item.criadoEm)}
-        </Text>
-      </View>
-      <View style={styles.itemRight}>
-        <View style={styles.itemRightTexts}>
-          <Text
-            style={[
-              styles.itemPontos,
-              item.acertou ? styles.itemPontosOk : styles.itemPontosErr,
-            ]}
-          >
-            {item.pontos} pts
+      <View style={styles.itemMain}>
+        <View
+          style={[
+            styles.iconCircle,
+            item.acertou ? styles.iconCircleOk : styles.iconCircleErr,
+          ]}
+        >
+          {item.acertou ? (
+            <Ionicons name="checkmark" size={18} color="#4ADE80" />
+          ) : (
+            <Ionicons name="close" size={18} color="#F87171" />
+          )}
+        </View>
+        <View style={styles.itemCenter}>
+          <Text style={styles.itemNome} numberOfLines={1}>
+            {item.titulo}
           </Text>
-          <Text
-            style={[
-              styles.itemStatus,
-              item.acertou ? styles.itemStatusOk : styles.itemStatusErr,
-            ]}
-          >
-            {item.acertou ? 'Acertou' : 'Errou'}
+          <Text style={styles.itemData}>
+            {formatarDataHoraBr(item.criadoEm)}
           </Text>
         </View>
-        <Ionicons
-          name="chevron-forward"
-          size={18}
-          color={colors.textSecondary}
-        />
+        <View style={styles.itemRight}>
+          <View style={styles.itemRightTexts}>
+            <Text
+              style={[
+                styles.itemPontos,
+                item.acertou ? styles.itemPontosOk : styles.itemPontosErr,
+              ]}
+            >
+              {item.pontos} pts
+            </Text>
+            <Text
+              style={[
+                styles.itemStatus,
+                item.acertou ? styles.itemStatusOk : styles.itemStatusErr,
+              ]}
+            >
+              {item.acertou ? 'Acertou' : 'Errou'}
+            </Text>
+          </View>
+        </View>
       </View>
+      {item.feedback ? (
+        <Text style={styles.itemFeedback} numberOfLines={3}>
+          {item.feedback}
+        </Text>
+      ) : null}
     </View>
   );
 
@@ -278,7 +377,46 @@ export function HistoricoScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top + 12 }]}>
-      <Text style={styles.headerTitle}>Histórico</Text>
+      <View style={styles.headerRow}>
+        <View style={styles.headerSideLeft} />
+        <Text style={styles.headerTitle}>Histórico</Text>
+        <View style={styles.headerSideRight}>
+          <Pressable
+            style={[
+              styles.exportBtn,
+              (exporting || items.length === 0) && styles.exportBtnDisabled,
+            ]}
+            onPress={aoExportar}
+            disabled={exporting || items.length === 0}
+            hitSlop={8}
+            accessibilityLabel="Exportar histórico em PDF"
+          >
+            {exporting ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Ionicons
+                name="download-outline"
+                size={16}
+                color={
+                  items.length === 0 ? colors.textSecondary : colors.primary
+                }
+              />
+            )}
+            <Text
+              style={[
+                styles.exportBtnText,
+                items.length === 0 && styles.exportBtnTextDisabled,
+              ]}
+            >
+              PDF
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+
+      {exportError ? (
+        <Text style={styles.exportErrorText}>{exportError}</Text>
+      ) : null}
 
       <View style={styles.tabsRow}>
         {FILTROS.map(({ key, label }) => {
