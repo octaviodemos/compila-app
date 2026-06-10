@@ -15,6 +15,7 @@ import 'react-native-reanimated';
 import { theme } from '@src/constants/theme';
 import { ThemeConfigContext } from '@src/contexts/useThemeContext';
 import { useAuth } from '@src/hooks/useAuth';
+import { useNotifications } from '@src/hooks/useNotifications';
 import { useThemeColors } from '@src/hooks/useTheme';
 import { seedIfEmpty } from '@src/scripts/seedChallenges';
 
@@ -23,6 +24,7 @@ export { ErrorBoundary } from 'expo-router';
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNavigator() {
+  useNotifications();
   const { user, loading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
