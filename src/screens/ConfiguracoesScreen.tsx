@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { fontFamily } from '@src/constants/typography';
 import { useAuth } from '@src/hooks/useAuth';
+import { useTestarNotificacao } from '@src/hooks/useTestarNotificacao';
 import { useThemeColors } from '@src/hooks/useTheme';
 import { mensagemErroAuth } from '@src/services/firebaseAuthErrors';
 import { auth } from '@src/services/firebase';
@@ -57,6 +58,7 @@ export function ConfiguracoesScreen() {
   const router = useRouter();
   const colors = useThemeColors();
   const { user } = useAuth();
+  const { enviar, carregando, mensagem, erro } = useTestarNotificacao();
   const [resetMessage, setResetMessage] = useState('');
   const [resetError, setResetError] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
@@ -365,6 +367,50 @@ export function ConfiguracoesScreen() {
               color={colors.textSecondary}
               style={styles.chevron}
             />
+          </Pressable>
+        </View>
+
+        <Text style={styles.sectionLabel}>🧪 Teste de Notificações</Text>
+        <View style={styles.sectionCard}>
+          <Pressable
+            onPress={enviar}
+            disabled={carregando}
+            style={({ pressed }) => [
+              styles.item,
+              styles.itemLast,
+              pressed && styles.itemPressed,
+              carregando && styles.itemDisabled,
+            ]}
+          >
+            <View style={styles.itemLeading}>
+              <Ionicons
+                name="notifications-outline"
+                size={20}
+                color={colors.primary}
+              />
+            </View>
+            <View style={styles.itemBody}>
+              <Text style={styles.itemLabel}>Enviar Notificação de Teste</Text>
+              <Text style={styles.itemValue}>
+                Clique para receber uma notificação de teste
+              </Text>
+              {mensagem ? (
+                <Text style={styles.itemMessageOk}>{mensagem}</Text>
+              ) : null}
+              {erro ? (
+                <Text style={styles.itemMessageErr}>{erro}</Text>
+              ) : null}
+            </View>
+            {carregando ? (
+              <ActivityIndicator color={colors.primary} />
+            ) : (
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={colors.textSecondary}
+                style={styles.chevron}
+              />
+            )}
           </Pressable>
         </View>
 
