@@ -62,6 +62,9 @@ function RootLayoutNavigator() {
       <Stack.Screen name="login" />
       <Stack.Screen name="cadastro" />
       <Stack.Screen name="configuracoes" />
+      <Stack.Screen name="ranking" />
+      <Stack.Screen name="conquistas" />
+      <Stack.Screen name="termos" />
     </Stack>
   );
 }

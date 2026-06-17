@@ -3,6 +3,7 @@ import { type Href, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -23,7 +24,7 @@ import {
 } from '@src/services/challenges';
 import { evaluateAnswer } from '@src/services/gemini';
 import type { Challenge } from '@src/types';
-import { labelDificuldade } from '@src/utils/challengeUi';
+import { gerarDicaDesafio, labelDificuldade } from '@src/utils/challengeUi';
 
 const MONO_FONT = Platform.OS === 'android' ? 'monospace' : 'Courier';
 
@@ -41,6 +42,7 @@ export function DesafiosScreen() {
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackOk, setFeedbackOk] = useState<boolean | null>(null);
   const [feedbackPoints, setFeedbackPoints] = useState<number | null>(null);
+  const [dicaOpen, setDicaOpen] = useState(false);
 
   const completou = feedbackOk === true;
   const errouUltima = feedbackOk === false;
@@ -107,6 +109,14 @@ export function DesafiosScreen() {
     setFeedbackText('');
     setFeedbackOk(null);
     setFeedbackPoints(null);
+  }
+
+  function abrirDica() {
+    setDicaOpen(true);
+  }
+
+  function fecharDica() {
+    setDicaOpen(false);
   }
 
   const styles = StyleSheet.create({
@@ -421,6 +431,41 @@ export function DesafiosScreen() {
       fontSize: 14,
       color: colors.text,
     },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      justifyContent: 'center',
+      paddingHorizontal: 20,
+    },
+    modalCard: {
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      padding: 20,
+      gap: 14,
+    },
+    modalTitle: {
+      fontFamily: fontFamily.bold,
+      fontSize: 18,
+      color: colors.text,
+    },
+    modalText: {
+      fontFamily: fontFamily.regular,
+      fontSize: 14,
+      lineHeight: 22,
+      color: colors.textSecondary,
+    },
+    modalBtn: {
+      borderRadius: 10,
+      paddingVertical: 12,
+      alignItems: 'center',
+      backgroundColor: colors.primary,
+      marginTop: 4,
+    },
+    modalBtnText: {
+      fontFamily: fontFamily.semibold,
+      fontSize: 14,
+      color: colors.text,
+    },
     footerHint: {
       marginTop: 10,
       textAlign: 'center',
@@ -452,6 +497,7 @@ export function DesafiosScreen() {
   }
 
   const exemplos = challenge.exemplos;
+  const textoDica = gerarDicaDesafio(challenge);
 
   return (
     <View style={styles.root}>
@@ -611,7 +657,7 @@ export function DesafiosScreen() {
             </Pressable>
           ) : (
             <>
-              <Pressable style={[styles.btnDica, { flex: 1 }]}>
+              <Pressable style={[styles.btnDica, { flex: 1 }]} onPress={abrirDica}>
                 <Text style={styles.btnDicaText}>💡 Dica</Text>
               </Pressable>
               <Pressable
@@ -642,6 +688,23 @@ export function DesafiosScreen() {
           </Text>
         ) : null}
       </View>
+
+      <Modal
+        visible={dicaOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={fecharDica}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>💡 Dica</Text>
+            <Text style={styles.modalText}>{textoDica}</Text>
+            <Pressable style={styles.modalBtn} onPress={fecharDica}>
+              <Text style={styles.modalBtnText}>Entendi</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

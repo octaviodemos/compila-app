@@ -441,7 +441,7 @@ export function InicioScreen() {
 
       <View style={[styles.sectionHeader, styles.sectionSpacer]}>
         <Text style={styles.sectionLabel}>Ranking</Text>
-        <Pressable>
+        <Pressable onPress={() => router.push('/ranking' as Href)}>
           <Text style={styles.verTudo}>Ver tudo ›</Text>
         </Pressable>
       </View>

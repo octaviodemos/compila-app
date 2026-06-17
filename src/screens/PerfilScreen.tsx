@@ -456,7 +456,7 @@ export function PerfilScreen() {
 
         <View style={styles.conqHeader}>
           <Text style={styles.conqTitle}>Conquistas</Text>
-          <Pressable>
+          <Pressable onPress={() => router.push('/conquistas' as Href)}>
             <Text style={styles.conqVerTudo}>Ver todas ›</Text>
           </Pressable>
         </View>

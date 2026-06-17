@@ -5,15 +5,17 @@ const CANAL_PADRAO = 'default';
 const ID_DESAFIO_DIARIO = 'local-desafio-diario';
 const ID_LEMBRETE_DIARIO = 'local-lembrete-diario';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 async function configurarCanalAndroid() {
   if (Platform.OS !== 'android') return;
@@ -46,6 +48,8 @@ async function garantirPermissaoNotificacoes(): Promise<boolean> {
 }
 
 export async function agendarNotificacoesLocaisDiarias(): Promise<void> {
+  if (Platform.OS === 'web') return;
+
   const permitido = await garantirPermissaoNotificacoes();
   if (!permitido) return;
 
@@ -92,6 +96,10 @@ export async function agendarNotificacoesLocaisDiarias(): Promise<void> {
 }
 
 export async function enviarNotificacaoLocalDeTeste(): Promise<void> {
+  if (Platform.OS === 'web') {
+    throw new Error('Notificacoes locais nao estao disponiveis na web.');
+  }
+
   const permitido = await garantirPermissaoNotificacoes();
   if (!permitido) {
     throw new Error('Permissao de notificacao negada.');

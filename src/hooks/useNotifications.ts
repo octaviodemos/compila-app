@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { useRouter, type Href } from 'expo-router';
 import { useEffect, useRef } from 'react';
+import { Platform } from 'react-native';
 
 import { useAuth } from '@src/hooks/useAuth';
 import { agendarNotificacoesLocaisDiarias } from '@src/services/notifications';
@@ -13,7 +14,7 @@ export function useNotifications() {
   const responseRef = useRef<Notifications.EventSubscription | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (Platform.OS === 'web' || !user) return;
 
     agendarNotificacoesLocaisDiarias().catch((error: unknown) => {
       const message =

@@ -74,6 +74,10 @@ export function ConfiguracoesScreen() {
     }
   }
 
+  function irParaTermos() {
+    router.push('/termos' as Href);
+  }
+
   async function aoAlterarSenha() {
     if (resetLoading) return;
     setResetMessage('');
@@ -345,6 +349,7 @@ export function ConfiguracoesScreen() {
           </View>
 
           <Pressable
+            onPress={irParaTermos}
             style={({ pressed }) => [
               styles.item,
               styles.itemLast,
