@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { type Href, useRouter } from 'expo-router';
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -18,19 +18,32 @@ import { fontFamily } from '@src/constants/typography';
 import { useAuth } from '@src/hooks/useAuth';
 import { useThemeColors } from '@src/hooks/useTheme';
 import {
+  getChallengeById,
   getTodayChallenge,
+  getUserProfile,
   getUserPontuacao,
+  normalizarUserPlano,
   saveAttempt,
 } from '@src/services/challenges';
 import { evaluateAnswer } from '@src/services/gemini';
-import type { Challenge } from '@src/types';
-import { gerarDicaDesafio, labelDificuldade } from '@src/utils/challengeUi';
+import { checkCanAttempt } from '@src/services/planRestrictions';
+import type { Challenge, UserPlano } from '@src/types';
+import {
+  gerarDicaDesafio,
+  labelDificuldade,
+  textoAceitaMultiplasLinguagens,
+  textoRespostaMultiLinguagem,
+} from '@src/utils/challengeUi';
 
 const MONO_FONT = Platform.OS === 'android' ? 'monospace' : 'Courier';
 
 export function DesafiosScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const params = useLocalSearchParams<{ challengeId?: string | string[] }>();
+  const challengeIdParam = Array.isArray(params.challengeId)
+    ? params.challengeId[0]
+    : params.challengeId;
   const { user } = useAuth();
   const colors = useThemeColors();
   const [challenge, setChallenge] = useState<Challenge | null>(null);
@@ -43,6 +56,10 @@ export function DesafiosScreen() {
   const [feedbackOk, setFeedbackOk] = useState<boolean | null>(null);
   const [feedbackPoints, setFeedbackPoints] = useState<number | null>(null);
   const [dicaOpen, setDicaOpen] = useState(false);
+  const [plano, setPlano] = useState<UserPlano>('free');
+  const [planoCarregado, setPlanoCarregado] = useState(false);
+  const [restricaoOpen, setRestricaoOpen] = useState(false);
+  const [restricaoReason, setRestricaoReason] = useState('');
 
   const completou = feedbackOk === true;
   const errouUltima = feedbackOk === false;
@@ -50,22 +67,41 @@ export function DesafiosScreen() {
   const carregar = useCallback(async () => {
     setLoadingChallenge(true);
     setLoadError('');
+    setPlanoCarregado(false);
     try {
-      const ch = await getTodayChallenge();
-      setChallenge(ch);
+      let userPlano: UserPlano = 'free';
       if (user?.uid) {
-        const pts = await getUserPontuacao(user.uid);
+        const [pts, perfil] = await Promise.all([
+          getUserPontuacao(user.uid),
+          getUserProfile(user.uid),
+        ]);
         setPontuacao(pts);
+        userPlano = normalizarUserPlano(perfil?.plano);
+        console.log('plano usuario:', userPlano);
+        setPlano(userPlano);
+      } else {
+        setPlano('free');
       }
+
+      let ch: Challenge | null = null;
+      if (challengeIdParam) {
+        ch = await getChallengeById(challengeIdParam);
+      }
+      if (!ch) {
+        ch = await getTodayChallenge(userPlano);
+      }
+      setChallenge(ch);
     } catch (e: unknown) {
       const msg =
         e instanceof Error ? e.message : 'Não foi possível carregar o desafio.';
       setLoadError(msg);
       setChallenge(null);
+      setPlano('free');
     } finally {
+      setPlanoCarregado(true);
       setLoadingChallenge(false);
     }
-  }, [user?.uid]);
+  }, [user?.uid, challengeIdParam]);
 
   useEffect(() => {
     carregar();
@@ -79,8 +115,27 @@ export function DesafiosScreen() {
     }
   };
 
+  function irParaPlanos() {
+    setRestricaoOpen(false);
+    router.push('/planos' as Href);
+  }
+
   async function aoEnviar() {
     if (!user?.uid || !challenge) return;
+
+    const permissao = await checkCanAttempt(
+      user.uid,
+      challenge.dificuldade,
+      challenge.id
+    );
+    if (!permissao.allowed) {
+      setRestricaoReason(
+        permissao.reason ?? 'Este recurso requer o plano Pro.'
+      );
+      setRestricaoOpen(true);
+      return;
+    }
+
     setFeedbackText('');
     setFeedbackOk(null);
     setFeedbackPoints(null);
@@ -217,7 +272,7 @@ export function DesafiosScreen() {
       letterSpacing: 0.5,
     },
     ptsPill: {
-      backgroundColor: '#252530',
+      backgroundColor: colors.card,
       paddingHorizontal: 12,
       paddingVertical: 6,
       borderRadius: 999,
@@ -238,7 +293,32 @@ export function DesafiosScreen() {
       fontSize: 15,
       color: colors.textSecondary,
       lineHeight: 22,
+      marginBottom: 16,
+    },
+    langsBanner: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 10,
+      backgroundColor: colors.card,
+      borderRadius: 10,
+      padding: 12,
       marginBottom: 24,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    langsBannerText: {
+      flex: 1,
+      fontFamily: fontFamily.regular,
+      fontSize: 13,
+      color: colors.textSecondary,
+      lineHeight: 18,
+    },
+    respostaHint: {
+      fontFamily: fontFamily.regular,
+      fontSize: 13,
+      color: colors.textSecondary,
+      marginBottom: 8,
+      lineHeight: 18,
     },
     sectionLabel: {
       fontFamily: fontFamily.semibold,
@@ -260,7 +340,7 @@ export function DesafiosScreen() {
     },
     exampleBlockSep: {
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+      borderBottomColor: colors.borderSubtle,
       paddingBottom: 14,
       marginBottom: 14,
     },
@@ -305,7 +385,7 @@ export function DesafiosScreen() {
       borderRadius: 12,
       backgroundColor: colors.card,
       borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.08)',
+      borderColor: colors.borderSubtle,
       gap: 10,
     },
     feedbackOk: {
@@ -386,7 +466,7 @@ export function DesafiosScreen() {
     },
     footer: {
       borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: 'rgba(255, 255, 255, 0.08)',
+      borderTopColor: colors.borderSubtle,
       paddingHorizontal: 20,
       backgroundColor: colors.background,
     },
@@ -475,7 +555,7 @@ export function DesafiosScreen() {
     },
   });
 
-  if (loadingChallenge) {
+  if (loadingChallenge || !planoCarregado) {
     return (
       <View style={[styles.root, styles.centered]}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -541,6 +621,13 @@ export function DesafiosScreen() {
         <Text style={styles.challengeTitle}>{challenge.titulo}</Text>
         <Text style={styles.challengeDesc}>{challenge.descricao}</Text>
 
+        <View style={styles.langsBanner}>
+          <Ionicons name="code-slash" size={18} color={colors.primary} />
+          <Text style={styles.langsBannerText}>
+            {textoAceitaMultiplasLinguagens()}
+          </Text>
+        </View>
+
         <Text style={styles.sectionLabel}>Exemplos</Text>
         <View style={styles.examplesCard}>
           {exemplos.map((ex, index) => (
@@ -566,12 +653,13 @@ export function DesafiosScreen() {
         <Text style={[styles.sectionLabel, styles.labelResposta]}>
           Sua resposta
         </Text>
+        <Text style={styles.respostaHint}>{textoRespostaMultiLinguagem()}</Text>
         <TextInput
           style={styles.input}
           multiline
           value={resposta}
           onChangeText={setResposta}
-          placeholder="// Digite sua resposta aqui..."
+          placeholder="// C, Kotlin, Python, JavaScript..."
           placeholderTextColor={colors.textSecondary}
           textAlignVertical="top"
           editable={!submitting && !completou}
@@ -701,6 +789,23 @@ export function DesafiosScreen() {
             <Text style={styles.modalText}>{textoDica}</Text>
             <Pressable style={styles.modalBtn} onPress={fecharDica}>
               <Text style={styles.modalBtnText}>Entendi</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={restricaoOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setRestricaoOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Limite do plano gratuito</Text>
+            <Text style={styles.modalText}>{restricaoReason}</Text>
+            <Pressable style={styles.modalBtn} onPress={irParaPlanos}>
+              <Text style={styles.modalBtnText}>Seja Pro</Text>
             </Pressable>
           </View>
         </View>

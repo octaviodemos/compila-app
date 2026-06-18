@@ -1,8 +1,6 @@
-import { theme } from "@src/constants/theme";
-import { useThemeColors } from "@src/hooks/useTheme";
+import type { AppColors } from '@src/theme/colors';
+import { useThemeColors } from '@src/hooks/useAppTheme';
 
-export function useThemeColor(
-  colorName: keyof typeof theme.colors.light & keyof typeof theme.colors.dark
-) {
+export function useThemeColor(colorName: keyof AppColors) {
   return useThemeColors()[colorName];
 }

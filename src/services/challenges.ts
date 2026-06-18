@@ -10,12 +10,13 @@ import {
     orderBy,
     query,
     serverTimestamp,
+    setDoc,
     updateDoc,
     where,
     writeBatch,
 } from 'firebase/firestore';
 
-import type { Challenge, EvaluateResult } from '@src/types';
+import type { Challenge, EvaluateResult, UserPlano } from '@src/types';
 
 import { db } from './firebase';
 
@@ -26,6 +27,7 @@ export type UserPublicProfile = {
   email: string;
   pontuacao: number;
   sequencia: number;
+  plano: UserPlano;
 };
 
 export type RankingItem = {
@@ -35,6 +37,16 @@ export type RankingItem = {
 };
 
 const RANKING_DEFAULT_LIMIT = 10;
+
+function parsePlano(valor: unknown): UserPlano {
+  return valor === 'pro' ? 'pro' : 'free';
+}
+
+export function normalizarUserPlano(
+  valor: UserPlano | null | undefined
+): UserPlano {
+  return valor === 'pro' ? 'pro' : 'free';
+}
 
 const exemploParSeparador = ' | ';
 const exemploSetaSeparador = ' → ';
@@ -119,26 +131,63 @@ function mapDocToChallenge(id: string, data: Record<string, unknown>): Challenge
   };
 }
 
-export async function getTodayChallenge(): Promise<Challenge | null> {
+export async function getTodayChallenge(
+  plano: UserPlano
+): Promise<Challenge | null> {
   if (!db) {
     throw new Error('Firestore não configurado.');
   }
 
-  const q = query(
-    collection(db, 'challenges'),
-    where('ativo', '==', true),
-    orderBy('criadoEm', 'desc'),
-    limit(1)
-  );
+  const challengesCol = collection(db, 'challenges');
+  let docsOrdenados;
 
-  const snap = await getDocs(q);
-  if (snap.empty) {
+  if (plano === 'free') {
+    try {
+      const snap = await getDocs(
+        query(
+          challengesCol,
+          where('ativo', '==', true),
+          where('dificuldade', '==', 'facil')
+        )
+      );
+      docsOrdenados = [...snap.docs];
+    } catch {
+      const fallback = await getDocs(
+        query(challengesCol, where('ativo', '==', true))
+      );
+      docsOrdenados = fallback.docs.filter((d) => {
+        const data = d.data() as Record<string, unknown>;
+        return data.dificuldade === 'facil';
+      });
+    }
+  } else {
+    const snap = await getDocs(query(challengesCol, where('ativo', '==', true)));
+    docsOrdenados = [...snap.docs];
+  }
+
+  if (docsOrdenados.length === 0) {
     return null;
   }
 
-  const docSnap = snap.docs[0]!;
+  docsOrdenados.sort((a, b) => a.id.localeCompare(b.id));
+  const hoje = new Date();
+  const diasDesdeEpoch = Math.floor(hoje.getTime() / (1000 * 60 * 60 * 24));
+  const indice = diasDesdeEpoch % docsOrdenados.length;
+  const docSnap = docsOrdenados[indice]!;
   const data = docSnap.data() as Record<string, unknown>;
   return mapDocToChallenge(docSnap.id, data);
+}
+
+export async function getChallengeById(id: string): Promise<Challenge | null> {
+  if (!db) {
+    throw new Error('Firestore não configurado.');
+  }
+
+  const snap = await getDoc(doc(db, 'challenges', id));
+  if (!snap.exists()) return null;
+
+  const data = snap.data() as Record<string, unknown>;
+  return mapDocToChallenge(snap.id, data);
 }
 
 export async function saveAttempt(
@@ -232,6 +281,33 @@ export async function calculateAndUpdateStreak(uid: string): Promise<number> {
   return sequencia;
 }
 
+export async function createUser(
+  uid: string,
+  data: { username: string; email: string }
+): Promise<void> {
+  if (!db) {
+    throw new Error('Firestore não configurado.');
+  }
+  await setDoc(doc(db, 'users', uid), {
+    username: data.username.trim(),
+    email: data.email.trim(),
+    pontuacao: 0,
+    sequencia: 0,
+    plano: 'free',
+    criadoEm: serverTimestamp(),
+  });
+}
+
+export async function updateUserPlano(
+  uid: string,
+  plano: UserPlano
+): Promise<void> {
+  if (!db) {
+    throw new Error('Firestore não configurado.');
+  }
+  await updateDoc(doc(db, 'users', uid), { plano });
+}
+
 export async function getUserProfile(
   uid: string
 ): Promise<UserPublicProfile | null> {
@@ -252,6 +328,7 @@ export async function getUserProfile(
       typeof data.sequencia === 'number' && Number.isFinite(data.sequencia)
         ? data.sequencia
         : 0,
+    plano: parsePlano(data.plano),
   };
 }
 

@@ -25,7 +25,6 @@ import {
 
 const GRID_H_PAD = 20;
 const GRID_GAPS_TOTAL = 32;
-const COR_CIRCULO_BLOQUEADO = '#2D2D3A';
 
 export function ConquistasScreen() {
   const insets = useSafeAreaInsets();
@@ -143,7 +142,7 @@ export function ConquistasScreen() {
       position: 'relative',
     },
     conqCircleBlocked: {
-      backgroundColor: COR_CIRCULO_BLOQUEADO,
+      backgroundColor: colors.surface,
     },
     conqEmoji: {
       fontSize: 26,

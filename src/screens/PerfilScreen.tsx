@@ -32,7 +32,6 @@ import {
 const GRID_H_PAD = 20;
 const GRID_GAPS_TOTAL = 32;
 const BIO_PADRAO = 'Bora compilar o futuro! 🚀';
-const COR_CIRCULO_BLOQUEADO = '#2D2D3A';
 
 export function PerfilScreen() {
   const insets = useSafeAreaInsets();
@@ -189,6 +188,20 @@ export function PerfilScreen() {
       fontSize: 20,
       color: colors.text,
     },
+    proBadge: {
+      backgroundColor: 'rgba(250, 204, 21, 0.2)',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: '#FACC15',
+    },
+    proBadgeText: {
+      fontFamily: fontFamily.bold,
+      fontSize: 10,
+      color: '#FACC15',
+      letterSpacing: 0.5,
+    },
     pencilBtn: {
       marginTop: 2,
     },
@@ -263,7 +276,7 @@ export function PerfilScreen() {
       position: 'relative',
     },
     conqCircleBlocked: {
-      backgroundColor: COR_CIRCULO_BLOQUEADO,
+      backgroundColor: colors.surface,
     },
     conqEmoji: {
       fontSize: 26,
@@ -335,7 +348,7 @@ export function PerfilScreen() {
       paddingHorizontal: 14,
       paddingVertical: 12,
       borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.08)',
+      borderColor: colors.borderSubtle,
     },
     modalInputBio: {
       minHeight: 80,
@@ -361,7 +374,7 @@ export function PerfilScreen() {
     },
     modalBtnCancel: {
       borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.15)',
+      borderColor: colors.borderSubtle,
     },
     modalBtnSave: {
       backgroundColor: colors.primary,
@@ -425,6 +438,11 @@ export function PerfilScreen() {
           </View>
           <View style={styles.usernameRow}>
             <Text style={styles.username}>{usernameMostrado}</Text>
+            {profile?.plano === 'pro' ? (
+              <View style={styles.proBadge}>
+                <Text style={styles.proBadgeText}>PRO</Text>
+              </View>
+            ) : null}
             <Pressable
               hitSlop={8}
               style={styles.pencilBtn}

@@ -16,4 +16,7 @@ export type ThemeColorSet = {
     textSecondary: string;
     tabIconDefault: string;
     tabIconSelected: string;
+    surface: string;
+    border: string;
+    borderSubtle: string;
 }

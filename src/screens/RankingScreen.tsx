@@ -118,7 +118,7 @@ export function RankingScreen() {
       width: 40,
       height: 40,
       borderRadius: 20,
-      backgroundColor: '#2D2D3A',
+      backgroundColor: colors.surface,
     },
     rankingUser: {
       flex: 1,

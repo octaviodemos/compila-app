@@ -1,5 +1,16 @@
 import type { Challenge, ChallengeDifficulty } from '@src/types';
 
+export const LINGUAGENS_ACEITAS =
+  'C, Kotlin, Python, JavaScript, C#, Go e outras';
+
+export function textoAceitaMultiplasLinguagens(): string {
+  return `Aceita qualquer linguagem: ${LINGUAGENS_ACEITAS}.`;
+}
+
+export function textoRespostaMultiLinguagem(): string {
+  return `Use a linguagem que preferir — ${LINGUAGENS_ACEITAS}.`;
+}
+
 export function labelDificuldade(d: ChallengeDifficulty): string {
   if (d === 'facil') return 'FÁCIL';
   if (d === 'medio') return 'MÉDIO';
@@ -7,8 +18,7 @@ export function labelDificuldade(d: ChallengeDifficulty): string {
 }
 
 export function gerarDicaDesafio(challenge: Challenge): string {
-  const linguagem = challenge.language === 'python' ? 'Python' : 'JavaScript';
-  const linhas = [`A resposta deve ser em ${linguagem}.`];
+  const linhas = [textoRespostaMultiLinguagem()];
   const primeiro = challenge.exemplos[0];
 
   if (primeiro) {
@@ -24,7 +34,7 @@ export function gerarDicaDesafio(challenge: Challenge): string {
   }
 
   linhas.push(
-    'Teste sua lógica mentalmente com os exemplos antes de enviar.'
+    'O importante é a lógica correta — a linguagem escolhida não importa para a avaliação.'
   );
 
   return linhas.join('\n\n');

@@ -19,10 +19,11 @@ import {
     getRanking,
     getTodayChallenge,
     getUserProfile,
+    normalizarUserPlano,
     type RankingItem,
 } from '@src/services/challenges';
-import type { Challenge } from '@src/types';
-import { labelDificuldade } from '@src/utils/challengeUi';
+import type { Challenge, UserPlano } from '@src/types';
+import { labelDificuldade, textoAceitaMultiplasLinguagens } from '@src/utils/challengeUi';
 
 const MESES = [
   'janeiro',
@@ -69,8 +70,21 @@ export function InicioScreen() {
     setLoadingChallenge(true);
     setLoadingRanking(true);
     try {
+      let userPlano: UserPlano = 'free';
+      if (user?.uid) {
+        try {
+          const perfil = await getUserProfile(user.uid);
+          userPlano = normalizarUserPlano(perfil?.plano);
+          setSequencia(perfil?.sequencia ?? 0);
+        } catch {
+          setSequencia(0);
+        }
+      } else {
+        setSequencia(0);
+      }
+
       const [ch, rank] = await Promise.all([
-        getTodayChallenge().catch(() => null),
+        getTodayChallenge(userPlano).catch(() => null),
         getRanking().catch(() => [] as RankingItem[]),
       ]);
       setChallenge(ch);
@@ -78,17 +92,6 @@ export function InicioScreen() {
     } finally {
       setLoadingChallenge(false);
       setLoadingRanking(false);
-    }
-
-    if (user?.uid) {
-      try {
-        const perfil = await getUserProfile(user.uid);
-        setSequencia(perfil?.sequencia ?? 0);
-      } catch {
-        setSequencia(0);
-      }
-    } else {
-      setSequencia(0);
     }
   }, [user?.uid]);
 
@@ -105,7 +108,11 @@ export function InicioScreen() {
   }, [challenge]);
 
   const aoResolver = () => {
-    router.push('/desafio' as Href);
+    if (!challenge?.id) return;
+    router.push({
+      pathname: '/desafio',
+      params: { challengeId: challenge.id },
+    });
   };
 
   const styles = StyleSheet.create({
@@ -224,6 +231,13 @@ export function InicioScreen() {
       lineHeight: 20,
       marginBottom: 8,
     },
+    challengeLangs: {
+      fontFamily: fontFamily.regular,
+      fontSize: 12,
+      color: 'rgba(255, 255, 255, 0.75)',
+      lineHeight: 17,
+      marginBottom: 10,
+    },
     challengeExemplo: {
       fontFamily: fontFamily.regular,
       fontSize: 12,
@@ -313,7 +327,7 @@ export function InicioScreen() {
       width: 40,
       height: 40,
       borderRadius: 20,
-      backgroundColor: '#2D2D3A',
+      backgroundColor: colors.surface,
     },
     rankingUser: {
       flex: 1,
@@ -386,6 +400,9 @@ export function InicioScreen() {
             </View>
             <Text style={styles.challengeTitle}>{challenge.titulo}</Text>
             <Text style={styles.challengeDesc}>{challenge.descricao}</Text>
+            <Text style={styles.challengeLangs}>
+              {textoAceitaMultiplasLinguagens()}
+            </Text>
             {exemploLinha ? (
               <Text style={styles.challengeExemplo}>{exemploLinha}</Text>
             ) : null}

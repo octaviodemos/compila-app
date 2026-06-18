@@ -1,4 +1,6 @@
 
+export type UserPlano = 'free' | 'pro';
+
 export type ChallengeLanguage = 'javascript' | 'python';
 
 export type ChallengeDifficulty = 'facil' | 'medio' | 'dificil';
@@ -25,6 +27,7 @@ export interface UserProfile {
   email: string;
   pontosTotais: number;
   nivel: number;
+  plano: UserPlano;
 }
 
 export interface Attempt {

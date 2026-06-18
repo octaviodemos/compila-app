@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { type Href, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     FlatList,
     ListRenderItem,
+    Modal,
     Pressable,
     StyleSheet,
     Text,
@@ -18,9 +19,11 @@ import { useThemeColors } from '@src/hooks/useTheme';
 import {
     getUserAttempts,
     getUserProfile,
+    normalizarUserPlano,
     type AttemptListItem,
 } from '@src/services/challenges';
 import { exportHistoricoPDF } from '@src/services/exportPdf';
+import type { UserPlano } from '@src/types';
 
 type FiltroHistorico = 'todos' | 'acertos' | 'erros';
 
@@ -44,26 +47,35 @@ const FILTROS: { key: FiltroHistorico; label: string }[] = [
 
 export function HistoricoScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { user } = useAuth();
   const colors = useThemeColors();
   const [filtro, setFiltro] = useState<FiltroHistorico>('todos');
   const [items, setItems] = useState<AttemptListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [plano, setPlano] = useState<UserPlano>('free');
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState('');
+  const [pdfProModalOpen, setPdfProModalOpen] = useState(false);
 
   const carregar = useCallback(async () => {
     if (!user?.uid) {
       setItems([]);
+      setPlano('free');
       setLoading(false);
       return;
     }
     setLoading(true);
     try {
-      const list = await getUserAttempts(user.uid);
+      const [list, perfil] = await Promise.all([
+        getUserAttempts(user.uid),
+        getUserProfile(user.uid),
+      ]);
       setItems(list);
+      setPlano(normalizarUserPlano(perfil?.plano));
     } catch {
       setItems([]);
+      setPlano('free');
     } finally {
       setLoading(false);
     }
@@ -91,6 +103,10 @@ export function HistoricoScreen() {
 
   async function aoExportar() {
     if (!user?.uid || exporting) return;
+    if (plano !== 'pro') {
+      setPdfProModalOpen(true);
+      return;
+    }
     if (items.length === 0) {
       setExportError('Você ainda não tem tentativas para exportar.');
       return;
@@ -168,6 +184,12 @@ export function HistoricoScreen() {
       fontSize: 12,
       color: colors.primary,
     },
+    exportBtnLocked: {
+      borderColor: colors.textSecondary,
+    },
+    exportBtnTextLocked: {
+      color: colors.textSecondary,
+    },
     exportBtnTextDisabled: {
       color: colors.textSecondary,
     },
@@ -178,6 +200,40 @@ export function HistoricoScreen() {
       fontSize: 12,
       color: '#F87171',
       textAlign: 'center',
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      justifyContent: 'center',
+      paddingHorizontal: 20,
+    },
+    modalCard: {
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      padding: 20,
+      gap: 14,
+    },
+    modalTitle: {
+      fontFamily: fontFamily.bold,
+      fontSize: 18,
+      color: colors.text,
+    },
+    modalText: {
+      fontFamily: fontFamily.regular,
+      fontSize: 14,
+      lineHeight: 22,
+      color: colors.textSecondary,
+    },
+    modalBtn: {
+      borderRadius: 10,
+      paddingVertical: 12,
+      alignItems: 'center',
+      backgroundColor: colors.primary,
+    },
+    modalBtnText: {
+      fontFamily: fontFamily.semibold,
+      fontSize: 14,
+      color: colors.text,
     },
     tabsRow: {
       flexDirection: 'row',
@@ -367,6 +423,13 @@ export function HistoricoScreen() {
     </View>
   );
 
+  const pdfBloqueado = plano !== 'pro';
+
+  function irParaPlanos() {
+    setPdfProModalOpen(false);
+    router.push('/planos' as Href);
+  }
+
   if (loading) {
     return (
       <View style={[styles.root, styles.centered, { paddingTop: insets.top }]}>
@@ -384,10 +447,13 @@ export function HistoricoScreen() {
           <Pressable
             style={[
               styles.exportBtn,
-              (exporting || items.length === 0) && styles.exportBtnDisabled,
+              pdfBloqueado && styles.exportBtnLocked,
+              !pdfBloqueado &&
+                (exporting || items.length === 0) &&
+                styles.exportBtnDisabled,
             ]}
             onPress={aoExportar}
-            disabled={exporting || items.length === 0}
+            disabled={!pdfBloqueado && (exporting || items.length === 0)}
             hitSlop={8}
             accessibilityLabel="Exportar histórico em PDF"
           >
@@ -395,17 +461,24 @@ export function HistoricoScreen() {
               <ActivityIndicator size="small" color={colors.primary} />
             ) : (
               <Ionicons
-                name="download-outline"
+                name={pdfBloqueado ? 'lock-closed' : 'download-outline'}
                 size={16}
                 color={
-                  items.length === 0 ? colors.textSecondary : colors.primary
+                  pdfBloqueado
+                    ? colors.textSecondary
+                    : items.length === 0
+                      ? colors.textSecondary
+                      : colors.primary
                 }
               />
             )}
             <Text
               style={[
                 styles.exportBtnText,
-                items.length === 0 && styles.exportBtnTextDisabled,
+                pdfBloqueado && styles.exportBtnTextLocked,
+                !pdfBloqueado &&
+                  items.length === 0 &&
+                  styles.exportBtnTextDisabled,
               ]}
             >
               PDF
@@ -459,6 +532,26 @@ export function HistoricoScreen() {
         }
         showsVerticalScrollIndicator={false}
       />
+
+      <Modal
+        visible={pdfProModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPdfProModalOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Recurso exclusivo Pro</Text>
+            <Text style={styles.modalText}>
+              Exportar PDF é exclusivo do plano Pro. Faça upgrade para
+              desbloquear!
+            </Text>
+            <Pressable style={styles.modalBtn} onPress={irParaPlanos}>
+              <Text style={styles.modalBtnText}>Ver planos</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

@@ -3,7 +3,6 @@ import {
     createUserWithEmailAndPassword,
     updateProfile,
 } from 'firebase/auth';
-import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { useState } from 'react';
 import {
     ActivityIndicator,
@@ -20,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { fontFamily } from '@src/constants/typography';
 import { useThemeColors } from '@src/hooks/useTheme';
+import { createUser } from '@src/services/challenges';
 import { auth, db } from '@src/services/firebase';
 import { mensagemErroAuth } from '@src/services/firebaseAuthErrors';
 
@@ -102,12 +102,9 @@ export function CadastroScreen() {
       await updateProfile(cred.user, {
         displayName: username.trim(),
       });
-      await setDoc(doc(db, 'users', cred.user.uid), {
+      await createUser(cred.user.uid, {
         username: username.trim(),
         email: cred.user.email ?? email.trim(),
-        pontuacao: 0,
-        sequencia: 0,
-        criadoEm: serverTimestamp(),
       });
     } catch (e: unknown) {
       const codigo =

@@ -3,10 +3,17 @@ import { generateText } from 'ai';
 
 import type { Challenge, EvaluateResult } from '@src/types/index';
 
+import { evaluateLocally } from './localEvaluator';
+
 export async function evaluateAnswer(
   challenge: Challenge,
   userAnswer: string
 ): Promise<EvaluateResult> {
+  const resultadoLocal = evaluateLocally(challenge, userAnswer);
+  if (resultadoLocal !== null) {
+    return resultadoLocal;
+  }
+
   const apiKey = process.env.EXPO_PUBLIC_LLM_API_KEY;
   if (!apiKey) {
     throw new Error('Defina EXPO_PUBLIC_LLM_API_KEY no arquivo .env');
@@ -21,13 +28,18 @@ export async function evaluateAnswer(
 
   const respostaUsuario = userAnswer.trim() || '(resposta vazia)';
 
-  const prompt = `Você é um professor de programação avaliando a resposta de um aluno iniciante em ${challenge.language}.
+  const prompt = `Você é um professor de programação avaliando a resposta de um aluno iniciante.
 Seja didático, honesto e gentil. Escreva o feedback em português do Brasil, em tom encorajador, mas sem inventar elogios quando a resposta estiver errada ou incompleta.
+
+IMPORTANTE SOBRE LINGUAGEM
+- O aluno pode responder em QUALQUER linguagem de programação (C, Kotlin, Python, JavaScript, C#, Go, etc.).
+- NÃO exija uma linguagem específica. Avalie apenas se a lógica resolve o problema para todos os exemplos.
+- Se o aluno usar linguagem diferente de "${challenge.language}", isso é válido — não penalize por isso.
+- O campo "language" do desafio é apenas referência histórica; a solução pode estar em qualquer linguagem.
 
 DESAFIO
 Título: ${challenge.titulo}
 Dificuldade: ${challenge.dificuldade}
-Linguagem alvo: ${challenge.language}
 Pontuação máxima: ${challenge.pontos}
 
 Descrição:
@@ -42,7 +54,7 @@ ${respostaUsuario}
 """
 
 COMO AVALIAR
-1. Identifique o que o aluno entregou: código completo, código parcial/pseudocódigo, apenas o valor de saída de um exemplo, apenas a entrada copiada, texto explicando a ideia, ou resposta vazia/sem sentido.
+1. Identifique o que o aluno entregou: código completo em qualquer linguagem, código parcial/pseudocódigo, apenas o valor de saída de um exemplo, apenas a entrada copiada, texto explicando a ideia, ou resposta vazia/sem sentido.
 2. Verifique se a lógica (mental ou implementada) produz a saída correta para CADA exemplo. Quando o aluno entregou só um número/string, considere se esse valor coincide com a saída esperada de algum exemplo (acerto parcial) ou se é apenas a entrada copiada (não conta como acerto).
 3. Atribua pontos de forma proporcional:
    - 0: resposta vazia, fora do tema, ou apenas a entrada copiada.
@@ -55,7 +67,7 @@ Escreva 2 a 4 frases curtas cobrindo nesta ordem:
 - O que está certo (se houver).
 - O que está errado ou faltando, citando exemplo concreto quando possível.
 - Próximo passo prático que o aluno pode tentar (sem dar a resposta pronta).
-Se a resposta for vazia ou sem sentido, oriente o aluno a escrever o código em ${challenge.language} usando os exemplos como guia.
+Se a resposta for vazia ou sem sentido, oriente o aluno a escrever código na linguagem que preferir, usando os exemplos como guia.
 
 FORMATO DA SAÍDA
 Responda APENAS com JSON válido, sem markdown, sem cercas de código, sem texto antes ou depois. Use exatamente este schema:

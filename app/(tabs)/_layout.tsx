@@ -20,7 +20,7 @@ export default function TabLayout() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: colors.background,
-          borderTopColor: colors.card,
+          borderTopColor: colors.borderSubtle,
         },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSecondary,

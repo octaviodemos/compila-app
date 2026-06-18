@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { type Href, useRouter } from 'expo-router';
 import { sendPasswordResetEmail, signOut } from 'firebase/auth';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -15,15 +16,29 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { fontFamily } from '@src/constants/typography';
+import { useAppTheme } from '@src/hooks/useAppTheme';
 import { useAuth } from '@src/hooks/useAuth';
 import { useTestarNotificacao } from '@src/hooks/useTestarNotificacao';
 import { useThemeColors } from '@src/hooks/useTheme';
+import { getUserProfile } from '@src/services/challenges';
 import { mensagemErroAuth } from '@src/services/firebaseAuthErrors';
 import { auth } from '@src/services/firebase';
+import type { UserPlano } from '@src/types';
+import type { TemaPreferencia } from '@src/theme/ThemeContext';
 
 const VERSAO_APP = '1.0.0';
 const COR_PERIGO = '#EF4444';
 const COR_SUCESSO = '#22C55E';
+
+const OPCOES_TEMA: {
+  id: TemaPreferencia;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
+  { id: 'auto', label: 'Automático', icon: 'phone-portrait-outline' },
+  { id: 'light', label: 'Claro', icon: 'sunny-outline' },
+  { id: 'dark', label: 'Escuro', icon: 'moon-outline' },
+];
 
 function confirmarSaida(): Promise<boolean> {
   if (Platform.OS === 'web') {
@@ -57,14 +72,36 @@ export function ConfiguracoesScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const colors = useThemeColors();
+  const { tema, setTema } = useAppTheme();
   const { user } = useAuth();
   const { enviar, carregando, mensagem, erro } = useTestarNotificacao();
   const [resetMessage, setResetMessage] = useState('');
   const [resetError, setResetError] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
   const [signOutLoading, setSignOutLoading] = useState(false);
+  const [plano, setPlano] = useState<UserPlano>('free');
 
   const email = user?.email ?? '—';
+  const planoLabel = plano === 'pro' ? 'Pro 👑' : 'Gratuito';
+
+  const carregarPlano = useCallback(async () => {
+    if (!user?.uid) {
+      setPlano('free');
+      return;
+    }
+    try {
+      const perfil = await getUserProfile(user.uid);
+      setPlano(perfil?.plano ?? 'free');
+    } catch {
+      setPlano('free');
+    }
+  }, [user?.uid]);
+
+  useFocusEffect(
+    useCallback(() => {
+      carregarPlano();
+    }, [carregarPlano])
+  );
 
   function onVoltar() {
     if (router.canGoBack()) {
@@ -76,6 +113,10 @@ export function ConfiguracoesScreen() {
 
   function irParaTermos() {
     router.push('/termos' as Href);
+  }
+
+  function irParaPlanos() {
+    router.push('/planos' as Href);
   }
 
   async function aoAlterarSenha() {
@@ -180,14 +221,14 @@ export function ConfiguracoesScreen() {
       paddingVertical: 14,
       gap: 12,
       borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+      borderBottomColor: colors.borderSubtle,
       minHeight: 56,
     },
     itemLast: {
       borderBottomWidth: 0,
     },
     itemPressed: {
-      backgroundColor: 'rgba(255, 255, 255, 0.04)',
+      backgroundColor: colors.borderSubtle,
     },
     itemDisabled: {
       opacity: 0.6,
@@ -291,6 +332,32 @@ export function ConfiguracoesScreen() {
           </View>
 
           <Pressable
+            onPress={irParaPlanos}
+            style={({ pressed }) => [
+              styles.item,
+              pressed && styles.itemPressed,
+            ]}
+          >
+            <View style={styles.itemLeading}>
+              <Ionicons
+                name="diamond-outline"
+                size={20}
+                color={colors.primary}
+              />
+            </View>
+            <View style={styles.itemBody}>
+              <Text style={styles.itemLabel}>Plano atual</Text>
+              <Text style={styles.itemValue}>{planoLabel}</Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={colors.textSecondary}
+              style={styles.chevron}
+            />
+          </Pressable>
+
+          <Pressable
             onPress={aoAlterarSenha}
             disabled={resetLoading || !user?.email}
             style={({ pressed }) => [
@@ -330,6 +397,43 @@ export function ConfiguracoesScreen() {
               />
             )}
           </Pressable>
+        </View>
+
+        <Text style={styles.sectionLabel}>Aparência</Text>
+        <View style={styles.sectionCard}>
+          {OPCOES_TEMA.map((opcao, index) => {
+            const ativo = tema === opcao.id;
+            const ultimo = index === OPCOES_TEMA.length - 1;
+            return (
+              <Pressable
+                key={opcao.id}
+                onPress={() => setTema(opcao.id)}
+                style={({ pressed }) => [
+                  styles.item,
+                  ultimo && styles.itemLast,
+                  pressed && styles.itemPressed,
+                ]}
+              >
+                <View style={styles.itemLeading}>
+                  <Ionicons
+                    name={opcao.icon}
+                    size={20}
+                    color={colors.primary}
+                  />
+                </View>
+                <View style={styles.itemBody}>
+                  <Text style={styles.itemLabel}>{opcao.label}</Text>
+                </View>
+                {ativo ? (
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={22}
+                    color={colors.primary}
+                  />
+                ) : null}
+              </Pressable>
+            );
+          })}
         </View>
 
         <Text style={styles.sectionLabel}>Sobre</Text>
