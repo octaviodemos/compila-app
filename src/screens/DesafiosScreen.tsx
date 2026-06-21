@@ -3,6 +3,7 @@ import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -22,10 +23,12 @@ import {
   getTodayChallenge,
   getUserProfile,
   getUserPontuacao,
+  isDesafioResolvidoHoje,
   normalizarUserPlano,
   saveAttempt,
 } from '@src/services/challenges';
 import { evaluateAnswer } from '@src/services/gemini';
+import { atualizarOfensiva } from '@src/services/ofensiva';
 import { checkCanAttempt } from '@src/services/planRestrictions';
 import type { Challenge, UserPlano } from '@src/types';
 import {
@@ -60,8 +63,10 @@ export function DesafiosScreen() {
   const [planoCarregado, setPlanoCarregado] = useState(false);
   const [restricaoOpen, setRestricaoOpen] = useState(false);
   const [restricaoReason, setRestricaoReason] = useState('');
+  const [jaConcluido, setJaConcluido] = useState(false);
 
-  const completou = feedbackOk === true;
+  // Em modo consulta/estudo quando o desafio já foi resolvido hoje.
+  const completou = feedbackOk === true || jaConcluido;
   const errouUltima = feedbackOk === false;
 
   const carregar = useCallback(async () => {
@@ -77,7 +82,6 @@ export function DesafiosScreen() {
         ]);
         setPontuacao(pts);
         userPlano = normalizarUserPlano(perfil?.plano);
-        console.log('plano usuario:', userPlano);
         setPlano(userPlano);
       } else {
         setPlano('free');
@@ -91,6 +95,16 @@ export function DesafiosScreen() {
         ch = await getTodayChallenge(userPlano);
       }
       setChallenge(ch);
+
+      // Já resolveu o desafio de hoje? Abre em modo consulta/estudo.
+      if (user?.uid) {
+        const resolvido = await isDesafioResolvidoHoje(user.uid).catch(
+          () => false
+        );
+        setJaConcluido(resolvido);
+      } else {
+        setJaConcluido(false);
+      }
     } catch (e: unknown) {
       const msg =
         e instanceof Error ? e.message : 'Não foi possível carregar o desafio.';
@@ -148,6 +162,10 @@ export function DesafiosScreen() {
       setFeedbackPoints(result.points);
       if (result.correct) {
         setPontuacao((p) => p + result.points);
+        // Atualiza ofensiva: sincroniza o widget e cancela lembretes de risco.
+        if (user?.uid) {
+          void atualizarOfensiva(user.uid);
+        }
       }
     } catch (e: unknown) {
       const msg =
@@ -580,7 +598,11 @@ export function DesafiosScreen() {
   const textoDica = gerarDicaDesafio(challenge);
 
   return (
-    <View style={styles.root}>
+    <KeyboardAvoidingView
+      style={styles.root}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}
+    >
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[
@@ -810,6 +832,6 @@ export function DesafiosScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </KeyboardAvoidingView>
   );
 }

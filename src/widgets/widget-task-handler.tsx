@@ -20,8 +20,17 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
     case 'WIDGET_UPDATE':
     case 'WIDGET_RESIZED':
     case 'WIDGET_CLICK': {
-      const { sequencia } = await readWidgetStreak();
-      props.renderWidget(<Widget sequencia={sequencia} />);
+      const { sequencia, resolvidoHoje, estadoForcado } =
+        await readWidgetStreak();
+      props.renderWidget(
+        <Widget
+          sequencia={sequencia}
+          resolvidoHoje={resolvidoHoje}
+          estadoForcado={estadoForcado ?? undefined}
+          width={widgetInfo.width}
+          height={widgetInfo.height}
+        />
+      );
       break;
     }
 

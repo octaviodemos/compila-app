@@ -18,12 +18,10 @@ import { useThemeColors } from '@src/hooks/useTheme';
 import {
     getRanking,
     getTodayChallenge,
-    getUserProfile,
-    normalizarUserPlano,
     type RankingItem,
 } from '@src/services/challenges';
-import { syncStreakWidget } from '@src/services/widgetSync';
-import type { Challenge, UserPlano } from '@src/types';
+import { lerStatusOfensiva, propagarOfensiva } from '@src/services/ofensiva';
+import type { Challenge } from '@src/types';
 import { labelDificuldade, textoAceitaMultiplasLinguagens } from '@src/utils/challengeUi';
 
 const MESES = [
@@ -64,37 +62,35 @@ export function InicioScreen() {
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [loadingChallenge, setLoadingChallenge] = useState(true);
   const [sequencia, setSequencia] = useState(0);
+  const [resolvidoHoje, setResolvidoHoje] = useState(false);
   const [ranking, setRanking] = useState<RankingItem[]>([]);
   const [loadingRanking, setLoadingRanking] = useState(true);
 
   const carregar = useCallback(async () => {
     setLoadingChallenge(true);
     setLoadingRanking(true);
-    try {
-      let userPlano: UserPlano = 'free';
-      let sequenciaAtual = 0;
-      if (user?.uid) {
-        try {
-          const perfil = await getUserProfile(user.uid);
-          userPlano = normalizarUserPlano(perfil?.plano);
-          sequenciaAtual = perfil?.sequencia ?? 0;
-        } catch {
-          sequenciaAtual = 0;
-        }
-      }
-      setSequencia(sequenciaAtual);
-      // Mantém o widget da tela inicial em sincronia com a sequência.
-      void syncStreakWidget(sequenciaAtual);
 
-      const [ch, rank] = await Promise.all([
-        getTodayChallenge(userPlano).catch(() => null),
-        getRanking().catch(() => [] as RankingItem[]),
-      ]);
+    // Status da ofensiva e ranking são independentes: buscamos em paralelo.
+    const [status, rank] = await Promise.all([
+      lerStatusOfensiva(user?.uid),
+      getRanking().catch(() => [] as RankingItem[]),
+    ]);
+
+    // Mostra sequência e ranking imediatamente.
+    setSequencia(status.sequencia);
+    setResolvidoHoje(status.resolvidoHoje);
+    setRanking(rank);
+    setLoadingRanking(false);
+
+    // Efeitos colaterais (widget + lembretes) em segundo plano, sem bloquear.
+    propagarOfensiva(status);
+
+    // O desafio depende do plano, então vem depois do status.
+    try {
+      const ch = await getTodayChallenge(status.plano).catch(() => null);
       setChallenge(ch);
-      setRanking(rank);
     } finally {
       setLoadingChallenge(false);
-      setLoadingRanking(false);
     }
   }, [user?.uid]);
 
@@ -132,9 +128,52 @@ export function InicioScreen() {
       justifyContent: 'space-between',
       marginBottom: 28,
     },
+    logoRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    logoMark: {
+      width: 34,
+      height: 34,
+      borderRadius: 9,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     compilaLogo: {
       fontFamily: fontFamily.bold,
       fontSize: 24,
+      color: colors.text,
+    },
+    doneBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: 'rgba(34, 197, 94, 0.18)',
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 12,
+      alignSelf: 'flex-start',
+    },
+    doneBadgeText: {
+      fontFamily: fontFamily.semibold,
+      fontSize: 13,
+      color: '#4ADE80',
+    },
+    reviewBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+      paddingVertical: 12,
+      borderRadius: 12,
+      width: '100%',
+      marginTop: 14,
+    },
+    reviewBtnText: {
+      fontFamily: fontFamily.semibold,
+      fontSize: 14,
       color: colors.text,
     },
     streakPill: {
@@ -365,7 +404,12 @@ export function InicioScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.header}>
-        <Text style={styles.compilaLogo}>Compila</Text>
+        <View style={styles.logoRow}>
+          <View style={styles.logoMark}>
+            <Ionicons name="code-slash" size={20} color="#FFFFFF" />
+          </View>
+          <Text style={styles.compilaLogo}>Compila</Text>
+        </View>
         <View style={styles.streakPill}>
           <Text style={styles.streakEmoji}>🔥</Text>
           <Text style={styles.streakNum}>{sequencia}</Text>
@@ -389,6 +433,31 @@ export function InicioScreen() {
           <View style={styles.challengeLoading}>
             <ActivityIndicator color={colors.text} />
           </View>
+        ) : resolvidoHoje ? (
+          <>
+            <View style={styles.challengeTopRow}>
+              <View style={styles.doneBadge}>
+                <Ionicons name="checkmark-circle" size={16} color="#4ADE80" />
+                <Text style={styles.doneBadgeText}>
+                  Desafio de hoje concluído
+                </Text>
+              </View>
+              <View style={styles.codeIconWrap}>
+                <Ionicons name="code-slash" size={24} color="#FFFFFF" />
+              </View>
+            </View>
+            <Text style={styles.challengeTitle}>Mandou bem! 🎉</Text>
+            <Text style={styles.challengeDesc}>
+              Você já resolveu o desafio de hoje. Volte amanhã para um novo.
+            </Text>
+            {challenge ? (
+              <Pressable style={styles.reviewBtn} onPress={aoResolver}>
+                <Text style={styles.reviewBtnText}>
+                  Revisar na área de desafios
+                </Text>
+              </Pressable>
+            ) : null}
+          </>
         ) : challenge ? (
           <>
             <View style={styles.challengeTopRow}>

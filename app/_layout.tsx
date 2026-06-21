@@ -16,9 +16,9 @@ import {
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
 
+import { LoadingScreen } from '@src/components/LoadingScreen';
 import { useAppTheme } from '@src/hooks/useAppTheme';
 import { useAuth } from '@src/hooks/useAuth';
 import { useNotifications } from '@src/hooks/useNotifications';
@@ -58,11 +58,7 @@ function RootLayoutNavigator() {
   }, [user]);
 
   if (loading) {
-    return (
-      <View style={[styles.overlay, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
+    return <LoadingScreen backgroundColor={colors.background} />;
   }
 
   return (
@@ -78,14 +74,6 @@ function RootLayoutNavigator() {
     </Stack>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
 
 function RootLayoutInner() {
   const [loaded, error] = useFonts({

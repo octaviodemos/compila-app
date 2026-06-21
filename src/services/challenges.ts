@@ -281,6 +281,36 @@ export async function calculateAndUpdateStreak(uid: string): Promise<number> {
   return sequencia;
 }
 
+export async function isDesafioResolvidoHoje(uid: string): Promise<boolean> {
+  if (!db) return false;
+
+  const attemptsCol = collection(db, 'users', uid, 'attempts');
+  // Busca só as tentativas mais recentes (ordenadas por data) em vez de
+  // todas — basta saber se alguma de hoje foi acertada.
+  const snap = await getDocs(
+    query(attemptsCol, orderBy('criadoEm', 'desc'), limit(20))
+  );
+
+  const chaveHoje = formatarChaveDia(new Date());
+  let resolvido = false;
+  snap.forEach((d) => {
+    if (resolvido) return;
+    const data = d.data() as Record<string, unknown>;
+    if (data.acertou !== true) return;
+    const ts = data.criadoEm;
+    if (ts && typeof (ts as { toDate?: () => Date }).toDate === 'function') {
+      const dataAttempt = (ts as { toDate: () => Date }).toDate();
+      if (formatarChaveDia(dataAttempt) === chaveHoje) resolvido = true;
+      return;
+    }
+    if (d.metadata.hasPendingWrites) {
+      resolvido = true;
+    }
+  });
+
+  return resolvido;
+}
+
 export async function createUser(
   uid: string,
   data: { username: string; email: string }

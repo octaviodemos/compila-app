@@ -38,8 +38,8 @@ export function useNotifications() {
     }
 
     receivedRef.current = Notifications.addNotificationReceivedListener(
-      (notification) => {
-        console.log('[Notificacoes] Recebida:', notification);
+      () => {
+        // Notificação recebida em primeiro plano: nada a fazer aqui.
       }
     );
 

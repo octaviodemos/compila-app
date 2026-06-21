@@ -19,6 +19,7 @@ import { fontFamily } from '@src/constants/typography';
 import { useAppTheme } from '@src/hooks/useAppTheme';
 import { useAuth } from '@src/hooks/useAuth';
 import { useTestarNotificacao } from '@src/hooks/useTestarNotificacao';
+import { useTestarOfensiva } from '@src/hooks/useTestarOfensiva';
 import { useThemeColors } from '@src/hooks/useTheme';
 import { getUserProfile } from '@src/services/challenges';
 import { mensagemErroAuth } from '@src/services/firebaseAuthErrors';
@@ -75,6 +76,12 @@ export function ConfiguracoesScreen() {
   const { tema, setTema } = useAppTheme();
   const { user } = useAuth();
   const { enviar, carregando, mensagem, erro } = useTestarNotificacao();
+  const {
+    proximoEstado,
+    carregando: carregandoOfensiva,
+    mensagem: mensagemOfensiva,
+    erro: erroOfensiva,
+  } = useTestarOfensiva();
   const [resetMessage, setResetMessage] = useState('');
   const [resetError, setResetError] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
@@ -511,6 +518,47 @@ export function ConfiguracoesScreen() {
               ) : null}
             </View>
             {carregando ? (
+              <ActivityIndicator color={colors.primary} />
+            ) : (
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={colors.textSecondary}
+                style={styles.chevron}
+              />
+            )}
+          </Pressable>
+        </View>
+
+        <Text style={styles.sectionLabel}>🔥 Teste de Ofensiva (Widget)</Text>
+        <View style={styles.sectionCard}>
+          <Pressable
+            onPress={proximoEstado}
+            disabled={carregandoOfensiva}
+            style={({ pressed }) => [
+              styles.item,
+              styles.itemLast,
+              pressed && styles.itemPressed,
+              carregandoOfensiva && styles.itemDisabled,
+            ]}
+          >
+            <View style={styles.itemLeading}>
+              <Ionicons name="flame-outline" size={20} color={colors.primary} />
+            </View>
+            <View style={styles.itemBody}>
+              <Text style={styles.itemLabel}>Alternar estado do widget</Text>
+              <Text style={styles.itemValue}>
+                Toque para percorrer todos os estados: em dia, pendente, aviso,
+                crítico e sem ofensiva
+              </Text>
+              {mensagemOfensiva ? (
+                <Text style={styles.itemMessageOk}>{mensagemOfensiva}</Text>
+              ) : null}
+              {erroOfensiva ? (
+                <Text style={styles.itemMessageErr}>{erroOfensiva}</Text>
+              ) : null}
+            </View>
+            {carregandoOfensiva ? (
               <ActivityIndicator color={colors.primary} />
             ) : (
               <Ionicons

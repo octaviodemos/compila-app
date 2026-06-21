@@ -5,6 +5,13 @@ const CANAL_PADRAO = 'default';
 const ID_DESAFIO_DIARIO = 'local-desafio-diario';
 const ID_LEMBRETE_DIARIO = 'local-lembrete-diario';
 
+// Lembretes de "ofensiva em risco" (estilo Duolingo). São agendados
+// apenas para HOJE e somente quando o desafio ainda não foi resolvido.
+const RISCO_15_ID = 'local-risco-15';
+const RISCO_19_ID = 'local-risco-19';
+const RISCO_22_ID = 'local-risco-22';
+const RISCO_IDS = [RISCO_15_ID, RISCO_19_ID, RISCO_22_ID];
+
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -56,6 +63,7 @@ export async function agendarNotificacoesLocaisDiarias(): Promise<void> {
   await Notifications.cancelScheduledNotificationAsync(ID_DESAFIO_DIARIO).catch(
     () => {}
   );
+  // Lembrete genérico antigo das 23h foi substituído pelos lembretes de risco.
   await Notifications.cancelScheduledNotificationAsync(ID_LEMBRETE_DIARIO).catch(
     () => {}
   );
@@ -63,8 +71,8 @@ export async function agendarNotificacoesLocaisDiarias(): Promise<void> {
   await Notifications.scheduleNotificationAsync({
     identifier: ID_DESAFIO_DIARIO,
     content: {
-      title: 'Desafio do dia disponivel!',
-      body: 'Voce tem um novo desafio disponivel. Quer tentar agora?',
+      title: 'Desafio do dia disponível!',
+      body: 'Você tem um novo desafio. Resolva para manter sua ofensiva 🔥',
       data: { screen: '/(tabs)/desafio', type: 'daily_challenge' },
       sound: true,
     },
@@ -75,24 +83,84 @@ export async function agendarNotificacoesLocaisDiarias(): Promise<void> {
       minute: 0,
     },
   });
+}
 
-  await Notifications.scheduleNotificationAsync({
-    identifier: ID_LEMBRETE_DIARIO,
-    content: {
-      title: 'Voce ainda nao completou o desafio!',
-      body: 'Ainda da tempo. Que tal resolver agora?',
-      data: { screen: '/(tabs)/desafio', type: 'reminder' },
-      sound: true,
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      channelId: CANAL_PADRAO,
-      hour: 23,
-      minute: 0,
-    },
-  });
+type ContextoOfensiva = {
+  resolvidoHoje: boolean;
+  sequencia: number;
+};
 
-  console.log('[Notificacoes] Agendamentos locais configurados.');
+/**
+ * Reagenda (estilo Duolingo) os lembretes de "ofensiva em risco" para HOJE.
+ * Cancela os antigos sempre. Só agenda novos se o desafio ainda não foi
+ * resolvido e existe uma ofensiva a preservar. Os horários já passados
+ * no dia são ignorados.
+ */
+export async function reagendarLembretesOfensiva(
+  contexto: ContextoOfensiva
+): Promise<void> {
+  if (Platform.OS === 'web') return;
+
+  const permitido = await garantirPermissaoNotificacoes();
+  if (!permitido) return;
+
+  for (const id of RISCO_IDS) {
+    await Notifications.cancelScheduledNotificationAsync(id).catch(() => {});
+  }
+
+  if (contexto.resolvidoHoje || contexto.sequencia <= 0) return;
+
+  const seq = contexto.sequencia;
+  const dias = `${seq} ${seq === 1 ? 'dia' : 'dias'}`;
+  const agora = new Date();
+
+  const lembretes = [
+    {
+      id: RISCO_15_ID,
+      hora: 15,
+      title: 'Sua ofensiva está esperando',
+      body: `Você ainda não resolveu o desafio de hoje. Mantenha seus ${dias} 🔥`,
+    },
+    {
+      id: RISCO_19_ID,
+      hora: 19,
+      title: '⚠️ Ofensiva em risco',
+      body: `Faltam poucas horas para perder seus ${dias} de ofensiva. Resolva agora!`,
+    },
+    {
+      id: RISCO_22_ID,
+      hora: 22,
+      title: '🔥 Última chance!',
+      body: `Resolva o desafio agora para não zerar seus ${dias} de ofensiva.`,
+    },
+  ];
+
+  for (const lembrete of lembretes) {
+    const quando = new Date(
+      agora.getFullYear(),
+      agora.getMonth(),
+      agora.getDate(),
+      lembrete.hora,
+      0,
+      0
+    );
+    if (quando.getTime() <= agora.getTime()) continue;
+
+    await Notifications.scheduleNotificationAsync({
+      identifier: lembrete.id,
+      content: {
+        title: lembrete.title,
+        body: lembrete.body,
+        data: { screen: '/(tabs)/desafio', type: 'streak_risk' },
+        sound: true,
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: quando,
+        channelId: CANAL_PADRAO,
+      },
+    });
+  }
 }
 
 export async function enviarNotificacaoLocalDeTeste(): Promise<void> {
