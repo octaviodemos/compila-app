@@ -17,6 +17,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.compila.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#0F0F14"
@@ -38,10 +39,40 @@
           "color": "#1A56DB",
           "iosDisplayInForeground": true
         }
-      ]
+      ],
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "Streak",
+              "label": "Compila — Sequência",
+              "description": "Mostra sua sequência de dias resolvendo desafios",
+              "minWidth": "110dp",
+              "minHeight": "110dp",
+              "targetWidth": "150dp",
+              "targetHeight": "150dp",
+              "previewImage": "./assets/images/icon.png",
+              "updatePeriodMillis": 1800000,
+              "resizeMode": "horizontal|vertical",
+              "targetSdkVersion": 34
+            }
+          ]
+        }
+      ],
+      "expo-font",
+      "expo-sharing",
+      "expo-status-bar",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "40a983ff-da39-44ef-98e5-1413b1e9f25b"
+      }
     }
   }
 }

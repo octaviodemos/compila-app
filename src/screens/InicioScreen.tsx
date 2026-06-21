@@ -1,5 +1,5 @@
 import { Feather, Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router';
 import { type Href, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import {
@@ -22,6 +22,7 @@ import {
     normalizarUserPlano,
     type RankingItem,
 } from '@src/services/challenges';
+import { syncStreakWidget } from '@src/services/widgetSync';
 import type { Challenge, UserPlano } from '@src/types';
 import { labelDificuldade, textoAceitaMultiplasLinguagens } from '@src/utils/challengeUi';
 
@@ -71,17 +72,19 @@ export function InicioScreen() {
     setLoadingRanking(true);
     try {
       let userPlano: UserPlano = 'free';
+      let sequenciaAtual = 0;
       if (user?.uid) {
         try {
           const perfil = await getUserProfile(user.uid);
           userPlano = normalizarUserPlano(perfil?.plano);
-          setSequencia(perfil?.sequencia ?? 0);
+          sequenciaAtual = perfil?.sequencia ?? 0;
         } catch {
-          setSequencia(0);
+          sequenciaAtual = 0;
         }
-      } else {
-        setSequencia(0);
       }
+      setSequencia(sequenciaAtual);
+      // Mantém o widget da tela inicial em sincronia com a sequência.
+      void syncStreakWidget(sequenciaAtual);
 
       const [ch, rank] = await Promise.all([
         getTodayChallenge(userPlano).catch(() => null),

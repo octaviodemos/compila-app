@@ -7,10 +7,12 @@ import {
 import {
   DarkTheme,
   DefaultTheme,
-  Theme,
+  Stack,
   ThemeProvider as NavigationThemeProvider,
-} from '@react-navigation/native';
-import { Stack, useRouter, useSegments, type Href } from 'expo-router';
+  useRouter,
+  useSegments,
+  type Href,
+} from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -110,7 +112,7 @@ function RootLayoutInner() {
   }
 
   const baseNavTheme = temaEfetivo === 'dark' ? DarkTheme : DefaultTheme;
-  const navigationTheme: Theme = {
+  const navigationTheme = {
     ...baseNavTheme,
     dark: temaEfetivo === 'dark',
     colors: {
